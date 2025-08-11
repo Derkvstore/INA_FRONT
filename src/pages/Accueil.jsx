@@ -8,11 +8,12 @@ import {
   ClockIcon,
   ArrowPathIcon,
   ArrowsRightLeftIcon,
-  CubeIcon, // Remplacer TruckIcon par CubeIcon pour l'arrivage, ce qui semble plus logique
-  ShoppingCartIcon, // Icône pour les ventes
+  CubeIcon,
+  ShoppingCartIcon,
+  TruckIcon
 } from '@heroicons/react/24/outline';
-import { CloudOff } from 'lucide-react'; // Icône pour l'erreur de connexion
-import { AnimatePresence, motion } from 'framer-motion'; // NOUVEL IMPORT pour des animations plus fluides
+import { CloudOff } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function Accueil() {
   const [dashboardStats, setDashboardStats] = useState({
@@ -181,7 +182,7 @@ export default function Accueil() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <CubeIcon className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-2 sm:mb-3" />
+              <TruckIcon className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-2 sm:mb-3" />
               <p className="text-3xl sm:text-4xl font-bold text-green-800 dark:text-green-300">{dashboardStats.totalArrivage}</p>
               <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Arrivage</p>
             </motion.div>
