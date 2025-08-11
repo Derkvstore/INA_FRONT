@@ -17,7 +17,7 @@ export default function Clients() {
 
   // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
   const backendUrl = import.meta.env.PROD
-    ? 'https://daff-backend-production.up.railway.app'
+    ? 'https://inaback-production.up.railway.app'
     : 'http://localhost:3001';
 
   // Fonction pour formater le numero de telephone (par ex. "90 80 90 89")
