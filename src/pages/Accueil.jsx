@@ -1,16 +1,18 @@
+// frontend/src/pages/Accueil.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DevicePhoneMobileIcon,
-  TruckIcon,
   CurrencyDollarIcon,
   CalendarDaysIcon,
   ClockIcon,
-  ArrowLeftIcon,
   ArrowPathIcon,
-  ArrowsRightLeftIcon
+  ArrowsRightLeftIcon,
+  CubeIcon, // Remplacer TruckIcon par CubeIcon pour l'arrivage, ce qui semble plus logique
+  ShoppingCartIcon, // Icône pour les ventes
 } from '@heroicons/react/24/outline';
 import { CloudOff } from 'lucide-react'; // Icône pour l'erreur de connexion
+import { AnimatePresence, motion } from 'framer-motion'; // NOUVEL IMPORT pour des animations plus fluides
 
 export default function Accueil() {
   const [dashboardStats, setDashboardStats] = useState({
@@ -24,11 +26,10 @@ export default function Accueil() {
   const [statsError, setStatsError] = useState('');
   const [isNetworkError, setIsNetworkError] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
   const quotes = [
-   "DAFF TELECOM 🌟, l'univers des mobiles authentiques. L'innovation à portée de main.",
+    "DAFF TELECOM 🌟, l'univers des mobiles authentiques. L'innovation à portée de main.",
     "Votre satisfaction, notre priorité. Découvrez la qualité DAFF TELECOM 📱.",
     "DAFF TELECOM 🪐 : Des mobiles fiables, un service irréproquable. Connectez-vous à l'excellence.",
     "L'authenticité au meilleur prix. C'est la promesse DAFF TELECOM ✨.",
@@ -41,6 +42,8 @@ export default function Accueil() {
     "Découvrez la différence DAFF TELECOM 🔋 : Des batteries qui tiennent, des performances qui durent.",
     "DAFF TELECOM 🌐 : Le monde de la mobile authentique, à portée de clic."
   ];
+
+  const navigate = useNavigate();
 
   const getFormattedDate = () => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -97,148 +100,127 @@ export default function Accueil() {
     return `${hours}:${minutes}:${seconds}`;
   };
 
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  };
+
   return (
-    <div className="py-10 px-4">
-      <style>
-        {`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeInUp {
-          animation: fadeInUp 0.8s ease-out forwards;
-        }
+    <div className="py-6 sm:py-10 px-4 sm:px-6 md:px-8">
+      {/* Utilisation de AnimatePresence pour une transition fluide des citations */}
+      <AnimatePresence mode="wait">
+        <motion.h3
+          key={currentQuoteIndex}
+          className="text-lg sm:text-2xl font-semibold text-blue-800 text-center mb-6 sm:mb-8 dark:text-blue-200"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.5 }}
+        >
+          {quotes[currentQuoteIndex]}
+        </motion.h3>
+      </AnimatePresence>
 
-        /* 💡 NOUVELLE ANIMATION pour la citation: fondu et légère mise à l'échelle */
-        @keyframes quote-fade-and-scale {
-          from {
-            opacity: 0;
-            transform: translateY(10px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .quote-animation {
-          animation: quote-fade-and-scale 0.8s ease-out forwards;
-        }
-
-        @keyframes pulse-once {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.2); opacity: 0.8; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-pulse-once { animation: pulse-once 1s ease-in-out; }
-
-        @keyframes spinner-grow {
-          0% {
-            transform: scale(0);
-          }
-          50% {
-            opacity: 1;
-            transform: none;
-          }
-        }
-        .spinner-grow {
-          display: inline-block;
-          width: 2rem;
-          height: 2rem;
-          vertical-align: -0.125em;
-          background-color: currentColor;
-          border-radius: 50%;
-          opacity: 0;
-          animation: 0.75s linear infinite spinner-grow;
-        }
-        `}
-      </style>
-
-      <h3
-        key={currentQuoteIndex}
-        className="text-2xl font-semibold text-blue-800 text-center mb-8 quote-animation"
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={cardVariants}
       >
-        {quotes[currentQuoteIndex]}
-      </h3>
-
-      <div className="animate-fadeInUp">
-        <div className="flex flex-col md:flex-row justify-center items-center gap-6 mb-10">
-          <div className="bg-white rounded-xl shadow-md p-5 flex items-center space-x-4 border border-gray-100 transform transition-transform duration-300 hover:scale-105">
-            <CalendarDaysIcon className="h-8 w-8 text-indigo-500" />
+        <div className="flex flex-col md:flex-row justify-center items-center gap-4 sm:gap-6 mb-8 sm:mb-10">
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-5 flex items-center space-x-3 sm:space-x-4 border border-gray-100 transform transition-transform duration-300 hover:scale-105 w-full md:w-auto">
+            <CalendarDaysIcon className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-500" />
             <div>
               <p className="text-sm text-gray-500">Nous sommes le</p>
-              <p className="text-xl font-bold text-gray-800">{getFormattedDate()}</p>
+              <p className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200">{getFormattedDate()}</p>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-5 flex items-center space-x-4 border border-gray-100 transform transition-transform duration-300 hover:scale-105">
-            <ClockIcon className="h-8 w-8 text-indigo-500" />
+          <div className="bg-white rounded-xl shadow-md p-4 sm:p-5 flex items-center space-x-3 sm:space-x-4 border border-gray-100 transform transition-transform duration-300 hover:scale-105 w-full md:w-auto">
+            <ClockIcon className="h-6 w-6 sm:h-8 sm:w-8 text-indigo-500" />
             <div>
               <p className="text-sm text-gray-500">Heure Actuelle</p>
-              <p className="text-xl font-bold text-gray-800">{formatTime(currentTime)}</p>
+              <p className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200">{formatTime(currentTime)}</p>
             </div>
           </div>
         </div>
 
         {isNetworkError ? (
-          <div className="flex flex-col items-center justify-center p-10 bg-red-50 rounded-xl shadow-lg mt-8">
-            <CloudOff className="h-16 w-16 text-red-500 mb-4 animate-pulse-once" />
-            <p className="text-xl font-semibold text-red-700 text-center">
+          <div className="flex flex-col items-center justify-center p-6 sm:p-10 bg-red-50 rounded-xl shadow-lg mt-6 sm:mt-8 dark:bg-red-950">
+            <CloudOff className="h-12 w-12 sm:h-16 sm:w-16 text-red-500 mb-4 animate-pulse-once" />
+            <p className="text-base sm:text-xl font-semibold text-red-700 text-center dark:text-red-300">
               Impossible de se connecter au serveur.
             </p>
-            <p className="text-gray-600 text-center mt-2">
+            <p className="text-sm sm:text-base text-gray-600 text-center mt-2 dark:text-gray-400">
               Vérifiez votre connexion Internet et réessayez.
             </p>
           </div>
         ) : statsLoading ? (
-          <div className="flex flex-col items-center justify-center p-10 mt-8">
+          <div className="flex flex-col items-center justify-center p-6 sm:p-10 mt-6 sm:mt-8">
             <div className="flex justify-center text-blue-500 mb-4">
-              <div className="spinner-grow" role="status">
-                <span className="sr-only">Chargement...</span>
-              </div>
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full border-4 border-t-4 border-blue-200 animate-spin dark:border-blue-700 dark:border-t-blue-400"></div>
             </div>
-            <p className="text-gray-600 text-center">Chargement des statistiques...</p>
+            <p className="text-gray-600 text-center dark:text-gray-400">Chargement des statistiques...</p>
           </div>
         ) : statsError ? (
-          <p className="text-red-600 text-center">{statsError}</p>
+          <p className="text-red-600 text-center dark:text-red-400">{statsError}</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <DevicePhoneMobileIcon className="h-12 w-12 text-blue-500 mb-3" />
-              <p className="text-4xl font-bold text-blue-800">{dashboardStats.totalCartons}</p>
-              <p className="text-lg text-gray-600 mt-2">Carton</p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 max-w-7xl mx-auto">
+            <motion.div
+              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105 dark:bg-gray-800 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <DevicePhoneMobileIcon className="h-10 w-10 sm:h-12 sm:w-12 text-blue-500 mb-2 sm:mb-3" />
+              <p className="text-3xl sm:text-4xl font-bold text-blue-800 dark:text-blue-300">{dashboardStats.totalCartons}</p>
+              <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Cartons</p>
+            </motion.div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <DevicePhoneMobileIcon className="h-12 w-12 text-green-500 mb-3" />
-              <p className="text-4xl font-bold text-green-800">{dashboardStats.totalArrivage}</p>
-              <p className="text-lg text-gray-600 mt-2">Arrivage</p>
-            </div>
+            <motion.div
+              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105 dark:bg-gray-800 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <CubeIcon className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mb-2 sm:mb-3" />
+              <p className="text-3xl sm:text-4xl font-bold text-green-800 dark:text-green-300">{dashboardStats.totalArrivage}</p>
+              <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Arrivage</p>
+            </motion.div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <CurrencyDollarIcon className="h-12 w-12 text-purple-500 mb-3" />
-              <p className="text-4xl font-bold text-purple-800">{dashboardStats.totalVentes}</p>
-              <p className="text-lg text-gray-600 mt-2">Vente</p>
-            </div>
+            <motion.div
+              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105 dark:bg-gray-800 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <ShoppingCartIcon className="h-10 w-10 sm:h-12 sm:w-12 text-purple-500 mb-2 sm:mb-3" />
+              <p className="text-3xl sm:text-4xl font-bold text-purple-800 dark:text-purple-300">{dashboardStats.totalVentes}</p>
+              <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Ventes</p>
+            </motion.div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <ArrowPathIcon className="h-12 w-12 text-orange-500 mb-3" />
-              <p className="text-4xl font-bold text-red-800">{dashboardStats.totalReturned}</p>
-              <p className="text-lg text-gray-600 mt-2">Retour Remplacer</p>
-            </div>
+            <motion.div
+              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105 dark:bg-gray-800 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <ArrowPathIcon className="h-10 w-10 sm:h-12 sm:w-12 text-orange-500 mb-2 sm:mb-3" />
+              <p className="text-3xl sm:text-4xl font-bold text-red-800 dark:text-red-300">{dashboardStats.totalReturned}</p>
+              <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Retours Client</p>
+            </motion.div>
 
-             <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <ArrowsRightLeftIcon className="h-12 w-12 text-red-500 mb-3" />
-              <p className="text-4xl font-bold text-pink-800">{dashboardStats.totalSentToSupplier}</p>
-              <p className="text-lg text-gray-600 mt-2">Retour Fournisseurs</p>
-            </div>
+             <motion.div
+              className="bg-white rounded-xl shadow-lg p-4 sm:p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105 dark:bg-gray-800 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <ArrowsRightLeftIcon className="h-10 w-10 sm:h-12 sm:w-12 text-red-500 mb-2 sm:mb-3" />
+              <p className="text-3xl sm:text-4xl font-bold text-pink-800 dark:text-pink-300">{dashboardStats.totalSentToSupplier}</p>
+              <p className="text-base sm:text-lg text-gray-600 mt-1 sm:mt-2 dark:text-gray-400">Retours Fournisseurs</p>
+            </motion.div>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
