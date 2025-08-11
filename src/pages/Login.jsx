@@ -66,7 +66,7 @@ export default function Login() {
           />
         </div>
 
-        <h2 className="text-center text-2xl font-light text-blue-700 mb-8">
+        <h2 className="text-center text-4xl font-bold tracking-tight text-blue-700 mb-8">
           Niangadou ELECTRO
         </h2>
 
