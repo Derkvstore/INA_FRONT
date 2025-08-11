@@ -66,7 +66,7 @@ export default function Login() {
 
         <div className="flex justify-center mb-4">
           <img
-            src="/logo.png"
+            src="/logo.jpg"
             alt="Logo Daff telecom"
             className="w-20 h-20 rounded-full object-cover shadow"
           />
