@@ -1,4 +1,3 @@
-// frontend/src/components/RemplacementsFournisseur.jsx
 import React, { useState, useEffect } from 'react';
 import {
   TruckIcon,
@@ -26,11 +25,29 @@ export default function RemplacementsFournisseur() {
   const [receiveModalError, setReceiveModalError] = useState('');
   const [isReceiving, setIsReceiving] = useState(false);
 
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?   'https://inaback-production.up.railway.app'
+
+    : 'http://localhost:3001';
+
+  const openConfirmModal = (title, message, action) => {
+    setConfirmModalContent({ title, message });
+    setOnConfirmAction(() => action);
+    setShowConfirmModal(true);
+  };
+
+  const closeConfirmModal = () => {
+    setShowConfirmModal(false);
+    setConfirmModalContent({ title: "", message: "" });
+    setOnConfirmAction(null);
+  };
+
   const fetchReplacedMobiles = async () => {
     setLoading(true);
     setStatusMessage({ type: '', text: '' });
     try {
-      const response = await fetch('http://localhost:3001/api/remplacements');
+      const response = await fetch(`${backendUrl}/api/remplacements`); // URL mise à jour
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Échec de la récupération des mobiles remplacés.');
@@ -107,7 +124,7 @@ export default function RemplacementsFournisseur() {
     }
 
     try {
-      const res = await fetch('http://localhost:3001/api/remplacements/receive-from-supplier', {
+      const res = await fetch(`${backendUrl}/api/remplacements/receive-from-supplier`, { // URL mise à jour
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

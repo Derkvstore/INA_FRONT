@@ -1,4 +1,3 @@
-// frontend/src/pages/Fournisseurs.jsx
 import React, { useEffect, useState } from "react";
 import { PlusIcon, PencilIcon, TrashIcon, BuildingOfficeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
@@ -21,6 +20,11 @@ export default function Fournisseurs() {
   const [confirmModalContent, setConfirmModalContent] = useState({ title: "", message: "" });
   const [onConfirmAction, setOnConfirmAction] = useState(null);
 
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ? 'https://inaback-production.up.railway.app'
+    : 'http://localhost:3001';
+
   const openConfirmModal = (title, message, action) => {
     setConfirmModalContent({ title, message });
     setOnConfirmAction(() => action);
@@ -37,7 +41,7 @@ export default function Fournisseurs() {
     setLoading(true);
     setFormError("");
     setSuccessMessage("");
-    fetch("http://localhost:3001/api/fournisseurs")
+    fetch(`${backendUrl}/api/fournisseurs`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Erreur réseau lors de la récupération des fournisseurs.");
@@ -79,7 +83,7 @@ export default function Fournisseurs() {
       return;
     }
 
-    let url = "http://localhost:3001/api/fournisseurs";
+    let url = `${backendUrl}/api/fournisseurs`;
     let method = "POST";
 
     if (editingId) {
@@ -118,7 +122,7 @@ export default function Fournisseurs() {
       "Êtes-vous sûr de vouloir supprimer ce fournisseur ? Cette action est irréversible et ne peut être effectuée que si aucun produit n'est lié à lui.",
       async () => {
         try {
-          const res = await fetch(`http://localhost:3001/api/fournisseurs/${id}`, {
+          const res = await fetch(`${backendUrl}/api/fournisseurs/${id}`, {
             method: "DELETE",
           });
           if (res.ok) {
@@ -173,14 +177,14 @@ export default function Fournisseurs() {
           setShowForm(true);
           resetForm();
         }}
-        className="mb-6 flex items-center px-5 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
+        className="mb-6 flex items-center px-5 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition shadow-md"
       >
         <PlusIcon className="h-5 w-5 mr-2" />
         Ajouter un fournisseur
       </button>
 
       {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 flex items-center justify-between" role="alert">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg relative mb-4 flex items-center justify-between" role="alert">
           <span className="block sm:inline">{successMessage}</span>
           <button onClick={() => setSuccessMessage("")} className="ml-4 text-green-700 hover:text-green-900">
             <XMarkIcon className="h-5 w-5" />
@@ -188,7 +192,7 @@ export default function Fournisseurs() {
         </div>
       )}
       {formError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center justify-between" role="alert">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-4 flex items-center justify-between" role="alert">
           <span className="block sm:inline">{formError}</span>
           <button onClick={() => setFormError("")} className="ml-4 text-red-700 hover:text-red-900">
             <XMarkIcon className="h-5 w-5" />
@@ -277,24 +281,24 @@ export default function Fournisseurs() {
       )}
 
       {loading ? (
-        <p className="text-gray-500">Chargement des fournisseurs...</p>
+        <p className="text-gray-500 text-center mt-8">Chargement des fournisseurs...</p>
       ) : fournisseurs.length === 0 ? (
-        <p className="text-gray-500">Aucun fournisseur trouvé.</p>
+        <p className="text-gray-500 text-center mt-8">Aucun fournisseur trouvé.</p>
       ) : (
-        <div className="bg-white shadow-md rounded-xl overflow-hidden">
+        <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200 mt-6">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-gray-700 text-left">
+            <thead className="bg-gray-100 text-gray-700 text-left">
               <tr>
-                <th className="px-6 py-3">Nom</th>
-                <th className="px-6 py-3">Téléphone</th>
-                <th className="px-6 py-3">Adresse</th>
-                <th className="px-6 py-3">Date d'ajout</th>
-                <th className="px-6 py-3 text-right">Actions</th>
+                <th className="px-6 py-3 font-semibold uppercase tracking-wider">Nom</th>
+                <th className="px-6 py-3 font-semibold uppercase tracking-wider">Téléphone</th>
+                <th className="px-6 py-3 font-semibold uppercase tracking-wider">Adresse</th>
+                <th className="px-6 py-3 font-semibold uppercase tracking-wider">Date d'ajout</th>
+                <th className="px-6 py-3 text-right font-semibold uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {fournisseurs.map((f) => (
-                <tr key={f.id} className="hover:bg-gray-50 transition">
+                <tr key={f.id} className="hover:bg-gray-50 transition-colors duration-150">
                   <td className="px-6 py-4 font-medium text-gray-900">{f.nom}</td>
                   <td className="px-6 py-4 text-gray-700">{f.telephone || "N/A"}</td>
                   <td className="px-6 py-4 text-gray-700">{f.adresse || "N/A"}</td>
@@ -308,14 +312,14 @@ export default function Fournisseurs() {
                   <td className="px-6 py-4 text-right space-x-2">
                     <button
                       onClick={() => handleEdit(f)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-blue-600 hover:text-blue-800 p-1 rounded-md transition-colors duration-200"
                       title="Modifier"
                     >
                       <PencilIcon className="w-5 h-5 inline" />
                     </button>
                     <button
                       onClick={() => handleDelete(f.id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-red-600 hover:text-red-800 p-1 rounded-md transition-colors duration-200"
                       title="Supprimer"
                     >
                       <TrashIcon className="w-5 h-5 inline" />

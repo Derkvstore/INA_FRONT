@@ -36,7 +36,10 @@ export default function Sorties() {
 
   const textareaRef = useRef(null);
 
-  const API_URL = 'http://localhost:3001'; // Définition directe pour cet environnement
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ? 'https://inaback-production.up.railway.app'
+    : 'http://localhost:3001';
 
   const openConfirmModal = (title, message, action) => {
     setConfirmModalContent({ title, message });
@@ -75,7 +78,7 @@ export default function Sorties() {
     setLoading(true);
     setStatusMessage({ type: '', text: '' });
     try {
-      const ventesRes = await fetch(`${API_URL}/api/ventes`);
+      const ventesRes = await fetch(`${backendUrl}/api/ventes`);
       if (!ventesRes.ok) {
         const errorData = await ventesRes.json();
         throw new Error(errorData.error || 'Échec de la récupération des ventes.');
@@ -206,7 +209,7 @@ export default function Sorties() {
         payload.new_total_amount = parseInt(parsedNewTotalAmountNegotiated, 10);
       }
 
-      const res = await fetch(`${API_URL}/api/ventes/${currentSaleToEdit.id}/update-payment`, {
+      const res = await fetch(`${backendUrl}/api/ventes/${currentSaleToEdit.id}/update-payment`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -238,7 +241,7 @@ export default function Sorties() {
       async (currentReason) => {
         setIsConfirming(true);
         try {
-          const res = await fetch(`${API_URL}/api/ventes/cancel-item`, {
+          const res = await fetch(`${backendUrl}/api/ventes/cancel-item`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -281,7 +284,7 @@ export default function Sorties() {
       }
       setIsConfirming(true);
       try {
-        const res = await fetch(`${API_URL}/api/ventes/return-item`, {
+        const res = await fetch(`${backendUrl}/api/ventes/return-item`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -376,7 +379,7 @@ export default function Sorties() {
       }
       setIsConfirming(true);
       try {
-        const res = await fetch(`${API_URL}/api/ventes/mark-as-rendu`, {
+        const res = await fetch(`${backendUrl}/api/ventes/mark-as-rendu`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -567,7 +570,7 @@ export default function Sorties() {
                       </td>
                       <td className="px-3 py-2 text-gray-700">
                         {new Date(data.date_vente).toLocaleDateString('fr-FR', {
-                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
                         })}
                       </td>
                       <td className="px-3 py-2 text-gray-700">
@@ -610,7 +613,7 @@ export default function Sorties() {
                           {data.statut_vente === 'annule'
                             ? 'ANNULÉ'
                             : data.statut_vente === 'retourne'
-                              ? 'RETOURNÉ'
+                              ? 'REMPLACER'
                               : data.statut_vente === 'remplace'
                                 ? 'REMPLACÉ'
                                 : data.statut_vente === 'rendu'

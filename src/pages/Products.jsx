@@ -69,6 +69,12 @@ export default function App() { // Renamed to App for direct rendering in Canvas
     setOnConfirmAction(null);
   };
 
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?   'https://inaback-production.up.railway.app'
+
+    : 'http://localhost:3001';
+
   // Fonction pour formater les nombres avec des espaces comme séparateurs de milliers
   const formatNumber = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
@@ -85,7 +91,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
     setLoading(true);
     setFormError("");
     setSuccessMessage("");
-    fetch("http://localhost:3001/api/products")
+    fetch(`${backendUrl}/api/products`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Erreur réseau lors de la récupération des produits.");
@@ -106,7 +112,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
   };
 
   const fetchFournisseurs = () => {
-    fetch("http://localhost:3001/api/fournisseurs")
+    fetch(`${backendUrl}/api/fournisseurs`)
       .then((res) => {
         if (!res.ok) {
           return res.json().then(err => { throw new Error(err.error || "Erreur réseau inconnue lors de la récupération des fournisseurs."); });
@@ -197,11 +203,19 @@ export default function App() { // Renamed to App for direct rendering in Canvas
       return;
     }
 
+    // Validation conditionnelle pour type_carton (CARTON)
     if (form.type === "CARTON" && form.marque.toLowerCase() === "iphone" && !form.type_carton) {
       setFormError("Le type de carton est requis pour les iPhones en carton.");
       setIsSubmitting(false);
       return;
     }
+    // Validation conditionnelle pour type_carton (ARRIVAGE iPhone)
+    if (form.type === "ARRIVAGE" && form.marque.toLowerCase() === "iphone" && !form.type_carton) {
+      setFormError("La qualité d'arrivage (SM/MSG) est requise pour les iPhones en arrivage.");
+      setIsSubmitting(false);
+      return;
+    }
+
 
     let dataToSend = {
       ...form,
@@ -219,7 +233,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
         return;
       }
       dataToSend.quantite = parsedQuantite;
-      url = `http://localhost:3001/api/products/${editingId}`;
+      url = `${backendUrl}/api/products/${editingId}`;
       method = "PUT";
     } else {
       const imeiInput = form.imei;
@@ -264,9 +278,13 @@ export default function App() { // Renamed to App for direct rendering in Canvas
           if (form.marque.toLowerCase() === "iphone" && form.type === "CARTON") {
             // Si le nouveau produit est un iPhone CARTON, type_carton doit correspondre
             match = match && p.type_carton === form.type_carton;
-          } else {
-            // Si le nouveau produit n'est PAS un iPhone CARTON, alors p.type_carton doit également être vide/null pour une correspondance
-            // Cela gère les cas comme ARRIVAGE où type_carton n'est pas applicable.
+          } else if (form.marque.toLowerCase() === "iphone" && form.type === "ARRIVAGE") {
+            // Si le nouveau produit est un iPhone ARRIVAGE, type_carton doit correspondre
+            match = match && p.type_carton === form.type_carton;
+          }
+          else {
+            // Si le nouveau produit n'est PAS un iPhone CARTON/ARRIVAGE, alors p.type_carton doit également être vide/null pour une correspondance
+            // Cela gère les cas comme ARRIVAGE non-iPhone où type_carton n'est pas applicable.
             match = match && (!p.type_carton || p.type_carton === "");
           }
           return match;
@@ -288,7 +306,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
         fournisseur_id: parseInt(form.fournisseur_id, 10),
       };
       delete dataToSend.quantite;
-      url = "http://localhost:3001/api/products/batch";
+      url = `${backendUrl}/api/products/batch`;
       method = "POST";
     }
 
@@ -315,7 +333,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
 
         if (responseData.failedProducts && responseData.failedProducts.length > 0) {
           const failedList = responseData.failedProducts.map(
-            (fp) => `- IMEI ${fp.imei} : ${fp.error}`
+            (fp) => `- IMEI ${fp.imei} : ${fp.imei_error || fp.error}` // Utilise imei_error si disponible, sinon error
           ).join('\n');
           errorMessage += `\n\nDétails des échecs :\n${failedList}`;
         } else if (responseData.constraint === "products_marque_modele_stockage_type_type_carton_imei_key") {
@@ -337,7 +355,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
       "Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible et ne peut être effectuée que si le produit n'est lié à aucune vente.",
       async () => {
         try {
-          const res = await fetch(`http://localhost:3001/api/products/${id}`, {
+          const res = await fetch(`${backendUrl}/api/products/${id}`, {
             method: "DELETE",
           });
           if (res.ok) {
@@ -557,6 +575,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
             </select>
           </div>
 
+          {/* Qualité du carton (conditionnel pour iPhone en Carton) */}
           {form.marque.toLowerCase() === "iphone" && form.type === "CARTON" && (
             <div className="col-span-full">
               <label htmlFor="type_carton" className="block text-sm font-medium text-gray-700 mb-1">
@@ -571,10 +590,31 @@ export default function App() { // Renamed to App for direct rendering in Canvas
                 className="w-full border border-blue-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
               >
                 <option value="">Choisir la qualité</option>
-                <option value="GW">GW</option>
                 <option value="ORG">ORG</option>
+                <option value="GW">GW</option>
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="NO ACTIVE">NO ACTIVE</option>
+              </select>
+            </div>
+          )}
+
+          {/* Qualité Arrivage (conditionnel pour iPhone en Arrivage) */}
+          {form.marque.toLowerCase() === "iphone" && form.type === "ARRIVAGE" && (
+            <div className="col-span-full">
+              <label htmlFor="type_carton" className="block text-sm font-medium text-gray-700 mb-1">
+                Qualité Arrivage *
+              </label>
+              <select
+                id="type_carton" // Reusing the same name for the field
+                name="type_carton"
+                value={form.type_carton}
+                onChange={handleChange}
+                required
+                className="w-full border border-blue-300 rounded-xl px-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+              >
+                <option value="">Choisir la qualité</option>
+                <option value="SM">SM</option>
+                <option value="MSG">MSG</option>
               </select>
             </div>
           )}
@@ -717,6 +757,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
                 <th className="px-6 py-3">Modèle</th>
                 <th className="px-6 py-3">Stockage</th>
                 <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3">Qualité Carton / Arrivage</th> {/* Mise à jour du titre de la colonne */}
                 <th className="px-6 py-3">IMEI</th>
                 <th className="px-6 py-3">Quantité</th>
                 <th className="px-6 py-3">Prix Achat</th>
@@ -738,7 +779,10 @@ export default function App() { // Renamed to App for direct rendering in Canvas
                   <td className="px-6 py-4 text-gray-700">{p.stockage}</td>
                   <td className="px-6 py-4 text-gray-700">
                     {p.type}
-                    {p.type === "CARTON" && p.type_carton ? ` (${p.type_carton})` : ""}
+                  </td>
+                  {/* Logique d'affichage pour Qualité Carton / Arrivage */}
+                  <td className="px-6 py-4 text-gray-700">
+                    {p.type_carton || "N/A"}
                   </td>
                   <td className="px-6 py-4 text-gray-700">{p.imei}</td>
                   <td className="px-6 py-4 text-gray-700">{p.quantite}</td>
@@ -754,7 +798,7 @@ export default function App() { // Renamed to App for direct rendering in Canvas
                   <td className="px-6 py-4 text-gray-700">
                     {p.date_ajout
                       ? new Date(p.date_ajout).toLocaleDateString('fr-FR', {
-                          year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' // ✅ MODIFIÉ : Ajout de l'heure et des minutes
+                          year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
                         })
                       : "N/A"}
                   </td>

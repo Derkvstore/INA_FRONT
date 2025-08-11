@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import {
   PlusIcon,
@@ -39,7 +39,7 @@ export default function SpecialOrders() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentOrderToEditPayment, setCurrentOrderToEditPayment] = useState(null);
   const [newMontantPaye, setNewMontantPaye] = useState('');
-  const [paymentModalError, setPaymentModalError] = '';
+  const [paymentModalError, setPaymentModalError] = useState(''); // Initialisation correcte
 
   // States for the custom confirmation modal (for Cancel / Replace)
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -67,6 +67,12 @@ export default function SpecialOrders() {
   const [raisonAnnulation, setRaisonAnnulation] = useState('');
   const [initialMontantPaye, setInitialMontantPaye] = useState(''); // For order creation
 
+
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?  'https://inaback-production.up.railway.app'
+
+    : 'http://localhost:3001';
 
   // --- Utility functions ---
   const formatCFA = (amount) => {
@@ -111,7 +117,7 @@ export default function SpecialOrders() {
     setLoadingOrders(true);
     setErrorOrders(null);
     try {
-      const response = await axios.get('http://localhost:3001/api/special-orders');
+      const response = await axios.get(`${backendUrl}/api/special-orders`);
       setOrders(response.data);
     } catch (err) {
       console.error('Error loading special orders:', err);
@@ -123,9 +129,9 @@ export default function SpecialOrders() {
 
   const fetchClientsAndFournisseurs = async () => {
     try {
-      const clientsRes = await axios.get('http://localhost:3001/api/clients');
+      const clientsRes = await axios.get(`${backendUrl}/api/clients`);
       setClients(clientsRes.data);
-      const fournisseursRes = await axios.get('http://localhost:3001/api/fournisseurs');
+      const fournisseursRes = await axios.get(`${backendUrl}/api/fournisseurs`);
       setFournisseurs(fournisseursRes.data);
     } catch (err) {
       console.error('Error loading clients or suppliers:', err);
@@ -165,7 +171,6 @@ export default function SpecialOrders() {
     setPrixVenteClient('');
     setStatut('en_attente');
     setRaisonAnnulation('');
-    setCurrentOrder(null);
     setInitialMontantPaye(''); // Reset for creation
   };
 
@@ -215,13 +220,13 @@ export default function SpecialOrders() {
       if (currentOrder) {
         // For editing, use the status update route if applicable
         // Note: This form does not update all order fields, only status and reason
-        await axios.put(`http://localhost:3001/api/special-orders/${currentOrder.order_id}/update-status`, {
+        await axios.put(`${backendUrl}/api/special-orders/${currentOrder.order_id}/update-status`, {
             statut: statut,
             raison_annulation: raisonAnnulation
         });
         setStatusMessage({ type: 'success', text: 'Special order updated successfully!' });
       } else {
-        await axios.post('http://localhost:3001/api/special-orders', orderData);
+        await axios.post(`${backendUrl}/api/special-orders`, orderData);
         setStatusMessage({ type: 'success', text: 'Special order added successfully!' });
       }
       setIsModalOpen(false);
@@ -238,7 +243,7 @@ export default function SpecialOrders() {
     setConfirmModalError('');
     setIsConfirming(true); // Activate confirmation button loading state
     try {
-      const res = await axios.put(`http://localhost:3001/api/special-orders/${orderId}/update-status`, {
+      const res = await axios.put(`${backendUrl}/api/special-orders/${orderId}/update-status`, {
         statut: newStatus,
         raison_annulation: reason
       });
@@ -283,7 +288,7 @@ export default function SpecialOrders() {
     }
 
     try {
-      await axios.put(`http://localhost:3001/api/special-orders/${orderId}/update-payment`, {
+      await axios.put(`${backendUrl}/api/special-orders/${orderId}/update-payment`, {
         new_montant_paye: parsedNewMontantPaye
       });
       setStatusMessage({ type: 'success', text: 'Special order payment updated successfully!' });
@@ -459,7 +464,7 @@ export default function SpecialOrders() {
 
         <button
           onClick={openAddModal}
-          className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors w-full md:w-auto justify-center text-sm"
+          className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors w-full md:w-auto justify-center"
         >
           <PlusIcon className="h-4 w-4 mr-1.5" /> {/* Smaller icon */}
           Ajouter une Commande Spéciale

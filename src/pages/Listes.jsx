@@ -14,6 +14,12 @@ export default function Liste() {
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' }); // { type: 'success' | 'error', text: '' }
   const [searchTerm, setSearchTerm] = useState('');
 
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?  'https://inaback-production.up.railway.app'
+
+    : 'http://localhost:3001';
+
   // Obtenir la date du jour formatée
   const getFormattedDate = () => {
     const today = new Date();
@@ -23,16 +29,17 @@ export default function Liste() {
     return `${day}-${month}-${year}`;
   };
 
-  // Fonction pour formater les montants en FCFA
+  // Fonction pour formater les montants en FCA avec des espaces
   const formatCFA = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return 'N/A CFA';
+      return 'N/A FCA';
     }
+    // Utilise toLocaleString pour formater avec des espaces et ajoute " FCA"
     return parseFloat(amount).toLocaleString('fr-FR', {
-      useGrouping: false,
+      useGrouping: true, // Ceci ajoute l'espace comme séparateur de milliers
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }) + ' CFA';
+    }) + ' FCA';
   };
 
   // Fonction pour récupérer les données des ventes depuis le backend
@@ -40,7 +47,7 @@ export default function Liste() {
     setLoading(true);
     setStatusMessage({ type: '', text: '' });
     try {
-      const ventesRes = await fetch('http://localhost:3001/api/ventes');
+      const ventesRes = await fetch(`${backendUrl}/api/ventes`); // URL mise à jour
       if (!ventesRes.ok) {
         const errorData = await ventesRes.json();
         throw new Error(errorData.error || 'Échec de la récupération des ventes.');
@@ -58,6 +65,8 @@ export default function Liste() {
   // Charger les ventes au montage du composant
   useEffect(() => {
     fetchVentes();
+    // Met à jour le titre de la page pour le nom de fichier
+    document.title = `LISTE DES DETTES ${getFormattedDate()}`;
   }, []);
 
   // Préparer les données pour l'affichage (regroupement par vente)
@@ -107,6 +116,9 @@ export default function Liste() {
       return clientMatch || telMatch || articlesMatch;
     })
     .sort((a, b) => a.client_nom.localeCompare(b.client_nom));
+    
+  // Calculer la somme totale du reste à payer
+  const totalResteAPayer = filteredAndSortedVentes.reduce((sum, vente) => sum + vente.reste_a_payer_vente, 0);
 
   // Fonction pour gérer l'impression de la liste
   const handlePrint = () => {
@@ -140,10 +152,6 @@ export default function Liste() {
           .no-print, .print-hidden {
             display: none !important;
           }
-          /* Masquer l'overlay de développement de Vite ou d'autres outils */
-          #vite-error-overlay, #react-devtools-content {
-            display: none !important;
-          }
           /* Assurer que le tableau est entièrement visible et s'adapte */
           .overflow-x-auto {
             overflow-x: visible !important;
@@ -175,6 +183,12 @@ export default function Liste() {
         }
         `}
       </style>
+
+      {/* Nouvelle section pour le résumé des totaux (visible sur l'écran, masquée à l'impression) */}
+      <div className="flex justify-between items-center text-lg font-bold text-gray-800 border-b-2 border-gray-300 pb-4 mb-4 no-print">
+        <p>Montant Total des Dettes:</p>
+        <p className="text-red-600">{formatCFA(totalResteAPayer)}</p>
+      </div>
 
       {/* Ajout de la classe print-header pour le titre et print-container pour le conteneur principal */}
       <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center flex items-center justify-center print-header">

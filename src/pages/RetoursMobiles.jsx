@@ -21,6 +21,12 @@ export default function RetoursMobiles() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedMobiles, setSelectedMobiles] = useState([]); // Nouveau: pour stocker les IDs des mobiles sélectionnés
 
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?    'https://inaback-production.up.railway.app'
+
+    : 'http://localhost:3001';
+
   const openConfirmModal = (title, message, action) => {
     setConfirmModalContent({ title, message });
     setOnConfirmAction(() => action);
@@ -39,7 +45,7 @@ export default function RetoursMobiles() {
     setLoading(true);
     setStatusMessage({ type: '', text: '' });
     try {
-      const response = await fetch('http://localhost:3001/api/returns');
+      const response = await fetch(`${backendUrl}/api/returns`); // URL mise à jour
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Échec de la récupération des mobiles retournés.');
@@ -102,7 +108,7 @@ export default function RetoursMobiles() {
         setIsConfirming(true);
         try {
           // Envoyer un tableau d'IDs au backend
-          const res = await fetch('http://localhost:3001/api/returns/send-to-supplier-batch', { // Nouvelle route ou modification de l'existante
+          const res = await fetch(`${backendUrl}/api/returns/send-to-supplier-batch`, { // URL mise à jour
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ return_ids: mobilesToSend.map(m => m.return_id) }),
@@ -333,5 +339,4 @@ export default function RetoursMobiles() {
         </div>
       )}
     </div>
-  );
-}
+  )}

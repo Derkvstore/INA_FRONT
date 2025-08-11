@@ -1,4 +1,3 @@
-// src/pages/Benefices.jsx
 import React, { useState, useEffect } from 'react';
 import { CurrencyDollarIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -42,7 +41,12 @@ export default function Benefices() {
     setLoading(true);
     setError(null);
     try {
-      let url = 'http://localhost:3001/api/benefices';
+      // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+      const backendUrl = import.meta.env.PROD
+        ? 'https://inaback-production.up.railway.app'
+        : 'http://localhost:3001';
+
+      let url = `${backendUrl}/api/benefices`;
       if (selectedDate) {
         url += `?date=${selectedDate}`; // Ajoute le paramètre de date si une date est sélectionnée
       }

@@ -1,6 +1,5 @@
-// frontend/src/components/Recherche.jsx
 import React, { useState, useEffect } from 'react';
-import { MagnifyingGlassIcon, XMarkIcon, CheckCircleIcon, XCircleIcon, CubeIcon } from '@heroicons/react/24/outline'; // Ajout de CubeIcon
+import { MagnifyingGlassIcon, XMarkIcon, CheckCircleIcon, XCircleIcon, CubeIcon } from '@heroicons/react/24/outline';
 
 export default function Recherche() {
   const [products, setProducts] = useState([]);
@@ -9,6 +8,11 @@ export default function Recherche() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+
+  // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
+  const backendUrl = import.meta.env.PROD
+    ?    'https://inaback-production.up.railway.app'
+    : 'http://localhost:3001';
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -24,12 +28,12 @@ export default function Recherche() {
     setFilteredProducts([]);
 
     try {
-      const response = await fetch('http://localhost:3001/api/products'); 
+      const response = await fetch(`${backendUrl}/api/products`); // URL mise à jour
       if (!response.ok) {
         throw new Error('Échec de la récupération des produits.');
       }
       const data = await response.json();
-      setProducts(data); // Stocke tous les produits
+      setProducts(data);
 
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
       const results = data.filter(product => {
@@ -39,8 +43,9 @@ export default function Recherche() {
         const storageMatch = product.stockage?.toLowerCase().includes(lowerCaseSearchTerm);
         const typeMatch = product.type?.toLowerCase().includes(lowerCaseSearchTerm);
         const cartonTypeMatch = product.type_carton?.toLowerCase().includes(lowerCaseSearchTerm);
+        const fournisseurNomMatch = product.nom_fournisseur?.toLowerCase().includes(lowerCaseSearchTerm);
 
-        return brandMatch || modelMatch || imeiMatch || storageMatch || typeMatch || cartonTypeMatch;
+        return brandMatch || modelMatch || imeiMatch || storageMatch || typeMatch || cartonTypeMatch || fournisseurNomMatch;
       });
       setFilteredProducts(results);
 
@@ -125,34 +130,40 @@ export default function Recherche() {
       {!loading && !error && hasSearched && filteredProducts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+            <div key={product.id} className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
               <div className="flex items-center mb-4">
-                {/* Utilisation de CubeIcon comme icône générique de produit, similaire à l'icône de téléphone de l'image */}
                 <div className="bg-blue-100 p-2 rounded-full mr-3">
                   <CubeIcon className="h-6 w-6 text-blue-600" />
                 </div>
-                <h4 className="text-xl font-semibold text-gray-900">
+                {/* On réduit la taille du titre sur mobile */}
+                <h4 className="text-lg sm:text-xl font-semibold text-gray-900">
                   {product.marque} {product.modele}
                 </h4>
               </div>
 
-              <div className="space-y-2 text-gray-700 text-sm">
+              {/* On réduit la taille de la police pour les détails sur mobile */}
+              <div className="space-y-2 text-gray-700 text-xs sm:text-sm">
                 <p><strong>IMEI:</strong> {product.imei || 'N/A'}</p>
                 <p>
-                  <strong>CLASSE:</strong> {product.type || 'N/A'}
-                  {product.type === "CARTON" && product.type_carton ? ` (${product.type_carton})` : ""}
+                  <strong>TYPE:</strong> {product.type || 'N/A'}
+                  {product.type === "CARTON" && product.type_carton ? ` ` : ""}
                 </p>
                 <p>
-                  <strong>Stockage:</strong> {product.stockage || 'N/A'} (GO)
+                  <strong>QUALITE:</strong> {product.type_carton || 'N/A'}
+                </p>
+                <p>
+                  <strong>Stockage:</strong> {product.stockage || 'N/A'} 
+                </p>
+                 <p>
+                  <strong>Fournisseur:</strong> {product.nom_fournisseur || 'N/A'} 
                 </p>
                 <p>
                   <strong>Date d'arrivée:</strong> {product.date_ajout ?
                     (() => {
                       try {
                         const date = new Date(product.date_ajout);
-                        // Format de date court comme dans l'image
                         return isNaN(date.getTime()) ? 'Invalide' : date.toLocaleDateString('fr-FR', {
-                            year: 'numeric', month: 'short', day: 'numeric'
+                            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute : '2-digit' , second : '2-digit'
                         });
                       } catch (e) {
                         return 'Invalide';
@@ -161,7 +172,7 @@ export default function Recherche() {
                     : 'N/A'}
                 </p>
                 <div className="flex items-center pt-2">
-                  {product.status === 'active' ? ( // Vérifie le statut du produit pour la disponibilité
+                  {product.status === 'active' ? (
                     <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                       <CheckCircleIcon className="h-4 w-4 mr-1" /> Disponible
                     </span>
