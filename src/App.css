@@ -6,7 +6,18 @@
   text-align: initial;
 }
 
+/* Ajoutez ceci pour un meilleur comportement sur les petites tailles d'écran */
+body {
+  overflow-x: hidden; /* Empêche le défilement horizontal */
+}
 
+/* Pour s'assurer que les images ne dépassent pas de leur conteneur sur les petits écrans */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Styles pour le logo */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -35,6 +46,7 @@
   }
 }
 
+/* Styles pour les cartes et documents */
 .card {
   padding: 2em;
 }
