@@ -21,7 +21,7 @@ import {
   ClipboardDocumentListIcon,
   MoonIcon,
   SunIcon,
-  XMarkIcon // NOUVEL IMPORT pour le bouton de fermeture du menu
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 // Importez vos composants de section ici avec les chemins corrects
@@ -39,8 +39,6 @@ import Fournisseurs from './Fournisseurs.jsx';
 import Factures from './Factures.jsx';
 import Benefices from '../pages/Benefices.jsx';
 import SpecialOrders from '../pages/SpecialOrders.jsx';
-
-// Import the logo image
 import logo from '../assets/logo.jpg';
 
 const sections = [
@@ -69,7 +67,7 @@ export default function Dashboard() {
     localStorage.getItem('theme') === 'dark' ||
     (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // NOUVEL ÉTAT pour le menu mobile
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigate = useNavigate();
 
@@ -109,47 +107,57 @@ export default function Dashboard() {
   const handleSectionClick = (name) => {
     setActive(name);
     localStorage.setItem('activeSection', name);
-    setIsMenuOpen(false); // Ferme le menu après la sélection sur mobile
+    setIsMenuOpen(false);
   };
 
+  // Ajout d'une gestion d'erreur de rendu pour les sous-composants
   const renderSection = () => {
-    switch (active) {
-      case 'Clients':
-        return <Clients />;
-      case 'Produits':
-        return <Products />;
-      case 'Vente':
-        return <NouvelleVente />;
-      case 'Sorties':
-        return <Sorties />;
-      case 'Recherche':
-        return <Recherche />;
-      case 'Factures':
-        return <Factures />;
-      case 'Bénéfices':
-        return <Benefices />;
-      case 'Achat':
-        return <SpecialOrders />;
-      case 'Retour mobile':
-        return <RetoursMobiles />;
-      case 'Liste Fournisseurs':
-        return <Fournisseurs />;
-      case 'Rtrs Fournisseur':
-        return <RemplacementsFournisseur />;
-      case 'Dettes':
-        return <Liste />;
-      case 'Rapport':
-        return <Rapport />;
-      case 'Accueil':
-        return <Accueil />;
-      default:
-        return <Accueil />;
+    try {
+      switch (active) {
+        case 'Clients':
+          return <Clients />;
+        case 'Produits':
+          return <Products />;
+        case 'Vente':
+          return <NouvelleVente />;
+        case 'Sorties':
+          return <Sorties />;
+        case 'Recherche':
+          return <Recherche />;
+        case 'Factures':
+          return <Factures />;
+        case 'Bénéfices':
+          return <Benefices />;
+        case 'Achat':
+          return <SpecialOrders />;
+        case 'Retour mobile':
+          return <RetoursMobiles />;
+        case 'Liste Fournisseurs':
+          return <Fournisseurs />;
+        case 'Rtrs Fournisseur':
+          return <RemplacementsFournisseur />;
+        case 'Dettes':
+          return <Liste />;
+        case 'Rapport':
+          return <Rapport />;
+        case 'Accueil':
+          return <Accueil />;
+        default:
+          return <Accueil />;
+      }
+    } catch (error) {
+      console.error(`Erreur de rendu du composant "${active}":`, error);
+      return (
+        <div className="p-8 text-center text-red-500">
+          <h3 className="text-xl font-bold mb-4">Erreur de chargement</h3>
+          <p>Le composant "{active}" n'a pas pu être affiché correctement. Veuillez vérifier les logs de la console pour plus de détails.</p>
+        </div>
+      );
     }
   };
 
   return (
     <div className="flex min-h-screen bg-blue-50 text-blue-900 font-sans dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
-      {/* Overlay pour le menu mobile */}
       {isMenuOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-20 sm:hidden"
@@ -157,7 +165,6 @@ export default function Dashboard() {
         ></div>
       )}
 
-      {/* Menu de navigation (latéral sur desktop, glissant sur mobile) */}
       <nav
         className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-30 transform transition-transform duration-300 dark:bg-gray-800 dark:text-gray-100
         ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -201,10 +208,8 @@ export default function Dashboard() {
       </nav>
 
       <div className="flex-grow flex flex-col">
-        {/* En-tête de l'application */}
         <header className="flex justify-between items-center bg-white shadow-md p-4 sticky top-0 z-10 dark:bg-gray-800 dark:text-gray-100 transition-colors duration-300">
           <div className="flex items-center">
-            {/* Bouton de menu pour mobile */}
             <button
               onClick={() => setIsMenuOpen(true)}
               className="mr-4 text-blue-700 dark:text-white sm:hidden"
@@ -244,7 +249,6 @@ export default function Dashboard() {
           )}
         </header>
 
-        {/* Contenu principal */}
         <main className="flex-grow p-4 sm:p-10 overflow-auto">
           <h2 className="text-xl sm:text-3xl font-bold mb-4 sm:mb-6 text-gray-800 dark:text-gray-200">
             {active}

@@ -232,17 +232,31 @@ export default function Clients() {
         Liste des clients
       </h1>
 
-      <button
-        onClick={() => {
-          setShowForm(true);
-          setForm({ nom: '', telephone: '', adresse: '' });
-          setEditingId(null);
-        }}
-        className="mb-6 flex items-center px-5 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition shadow-md"
-      >
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Ajouter un client
-      </button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-6">
+        <div className="relative w-full sm:max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+          </span>
+          <input
+            type="text"
+            placeholder="Rechercher par nom, téléphone ou adresse..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border border-blue-300 rounded-full px-4 py-2 pl-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+          />
+        </div>
+        <button
+          onClick={() => {
+            setShowForm(true);
+            setForm({ nom: '', telephone: '', adresse: '' });
+            setEditingId(null);
+          }}
+          className="flex-shrink-0 flex items-center px-5 py-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition shadow-md"
+        >
+          <PlusIcon className="h-5 w-5 mr-2" />
+          Ajouter un client
+        </button>
+      </div>
 
       {successMessage && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg relative mb-4 flex items-start justify-between" role="alert">
@@ -358,8 +372,11 @@ export default function Clients() {
       )}
 
       {loading ? (
-        <div className="p-4 bg-white rounded-xl shadow">
-          <p className="text-gray-500 text-center">Chargement...</p>
+        <div className="p-4 bg-white rounded-xl shadow mt-6">
+          <p className="text-gray-500 text-center">
+            <Skeleton count={1} height={40} className="mb-4"/>
+            <Skeleton count={5} />
+          </p>
         </div>
       ) : filteredClients.length === 0 ? (
         <p className="text-gray-500 text-center mt-8">Aucun client trouvé.</p>
