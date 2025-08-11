@@ -9,6 +9,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 
 // Liste des quartiers de Bamako pour l'autocomplétion
 const QUARTIERS_BAMAKO = [
