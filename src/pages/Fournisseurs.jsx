@@ -1,4 +1,4 @@
-// frontend/src/components/Fournisseurs.jsx
+// frontend/src/pages/Fournisseurs.jsx
 import React, { useEffect, useState } from "react";
 import { PlusIcon, PencilIcon, TrashIcon, BuildingOfficeIcon, XMarkIcon } from "@heroicons/react/24/outline";
 

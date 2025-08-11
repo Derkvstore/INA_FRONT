@@ -17,13 +17,14 @@ export default function Sorties() {
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState({ type: '', text: '' });
   const [searchTerm, setSearchTerm] = useState('');
-
+ 
   // États pour la modale de modification de paiement
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentSaleToEdit, setCurrentSaleToEdit] = useState(null);
   const [newMontantPaye, setNewMontantPaye] = useState('');
   // État pour le nouveau montant total négocié
   const [newTotalAmountNegotiated, setNewTotalAmountNegotiated] = useState('');
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false); // Loading state for payment update
 
   // États pour la modale de confirmation personnalisée
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -31,7 +32,7 @@ export default function Sorties() {
   const [onConfirmAction, setOnConfirmAction] = useState(null);
   const [returnReasonInput, setReturnReasonInput] = useState('');
   const [modalError, setModalError] = useState('');
-  const [isConfirming, setIsConfirming] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false); // Loading state for confirm modal actions
 
   const textareaRef = useRef(null);
 
@@ -96,41 +97,51 @@ export default function Sorties() {
   // Aplatir les données de vente pour l'affichage dans le tableau
   // Inclure TOUS les articles de la vente, quel que soit leur statut
   const flattenedVentes = ventes.flatMap(vente => {
-    const resteAPayerVente = parseFloat(vente.montant_total) - parseFloat(vente.montant_paye);
-
     // Calculer le prix d'achat total pour cette vente spécifique
     const totalPrixAchatVente = (vente.articles || []).reduce((sum, item) => {
-      // S'assurer que prix_unitaire_achat est un nombre
       const qty = parseFloat(item.quantite_vendue) || 0;
-      const prixAchat = parseFloat(item.prix_unitaire_achat) || 0; // Utilisation de prix_unitaire_achat
+      const prixAchat = parseFloat(item.prix_unitaire_achat) || 0;
       return sum + (qty * prixAchat);
     }, 0);
 
-    return (vente.articles || []).map(item => ({
-      vente_id: vente.vente_id,
-      date_vente: vente.date_vente,
-      client_nom: vente.client_nom,
-      client_telephone: vente.client_telephone || 'N/A',
-      montant_total_vente: vente.montant_total,
-      montant_paye_vente: vente.montant_paye,
-      reste_a_payer_vente: resteAPayerVente,
-      statut_paiement_vente: vente.statut_paiement,
-      marque: item.marque,
-      modele: item.modele,
-      stockage: item.stockage,
-      imei: item.imei,
-      type_carton: item.type_carton,
-      type: item.type,
-      quantite_vendue: item.quantite_vendue,
-      prix_unitaire_vente: item.prix_unitaire_vente,
-      item_id: item.item_id,
-      produit_id: item.produit_id,
-      statut_vente: item.statut_vente, // Le statut réel de l'article sera affiché
-      is_special_sale_item: item.is_special_sale_item, // Utiliser cette propriété pour le conditionnement des boutons
-      source_achat_id: item.source_achat_id,
-      prix_unitaire_achat: item.prix_unitaire_achat, // Assurez-vous que ceci est inclus si nécessaire pour d'autres logiques
-      total_prix_achat_de_la_vente: totalPrixAchatVente, // AJOUTÉ : Prix d'achat total de la vente
-    }));
+    return (vente.articles || []).map(item => {
+      let resteAPayerItem = 0;
+      // Si l'article est actif, le reste à payer est le reste à payer de la vente globale
+      if (item.statut_vente === 'actif') {
+        const totalVente = parseFloat(vente.montant_total) || 0;
+        const montantPayeVente = parseFloat(vente.montant_paye) || 0;
+        resteAPayerItem = totalVente - montantPayeVente;
+      } else {
+        // Si l'article n'est pas actif (annulé, retourné, etc.), son reste à payer est 0
+        resteAPayerItem = 0;
+      }
+
+      return {
+        vente_id: vente.vente_id,
+        date_vente: vente.date_vente,
+        client_nom: vente.client_nom,
+        client_telephone: vente.client_telephone || 'N/A', // Gardé pour d'autres logiques si besoin
+        montant_total_vente: vente.montant_total,
+        montant_paye_vente: vente.montant_paye,
+        reste_a_payer_vente: resteAPayerItem, // Utilise le reste à payer calculé
+        statut_paiement_vente: vente.statut_paiement,
+        marque: item.marque,
+        modele: item.modele,
+        stockage: item.stockage,
+        imei: item.imei,
+        type_carton: item.type_carton,
+        type: item.type,
+        quantite_vendue: item.quantite_vendue,
+        prix_unitaire_vente: item.prix_unitaire_vente,
+        item_id: item.item_id,
+        produit_id: item.produit_id,
+        statut_vente: item.statut_vente, // Le statut réel de l'article sera affiché
+        is_special_sale_item: item.is_special_sale_item,
+        source_achat_id: item.source_achat_id,
+        prix_unitaire_achat: item.prix_unitaire_achat,
+        total_prix_achat_de_la_vente: totalPrixAchatVente,
+      };
+    });
   });
 
   // Filtrer les ventes aplaties selon les critères définis par l'utilisateur
@@ -151,7 +162,7 @@ export default function Sorties() {
       id: saleId,
       montant_paye: currentMontantPaye,
       montant_total: montantTotal,
-      total_prix_achat_de_la_vente: totalPrixAchatDeLaVente // CORRIGÉ : Utilise le nom de variable correct
+      total_prix_achat_de_la_vente: totalPrixAchatDeLaVente
     });
     setNewMontantPaye(String(Math.round(currentMontantPaye)));
     setNewTotalAmountNegotiated(String(Math.round(montantTotal)));
@@ -159,33 +170,33 @@ export default function Sorties() {
   };
 
   const handleConfirmUpdatePayment = async () => {
+    setIsUpdatingPayment(true); // Set loading state
     const parsedNewMontantPaye = parseFloat(newMontantPaye);
     const parsedNewTotalAmountNegotiated = parseFloat(newTotalAmountNegotiated);
-    const totalPrixAchatDeLaVente = currentSaleToEdit.total_prix_achat_de_la_vente; // RÉCUPÉRÉ
+    const totalPrixAchatDeLaVente = currentSaleToEdit.total_prix_achat_de_la_vente;
 
     if (isNaN(parsedNewMontantPaye) || parsedNewMontantPaye < 0) {
       setStatusMessage({ type: 'error', text: 'Le nouveau montant payé est invalide.' });
+      setIsUpdatingPayment(false); // Reset loading state
       return;
     }
 
-    if (isNaN(parsedNewTotalAmountNegotiated) || parsedNewTotalAmountNegotiated <= 0) {
-        setStatusMessage({ type: 'error', text: 'Le nouveau montant total négocié est invalide ou négatif.' });
-        return;
-    }
-
-    // NOUVELLE VALIDATION : Le prix de négociation ne peut pas être inférieur au prix d'achat total de la vente
-    if (parsedNewTotalAmountNegotiated <= totalPrixAchatDeLaVente) {
-      setStatusMessage({ type: 'error', text: `Le nouveau montant total (${formatCFA(parsedNewTotalAmountNegotiated)}) ne peut pas être inférieur ou égale au prix d'achat total de la vente (${formatCFA(totalPrixAchatDeLaVente)}).` });
+    // UPDATED LOGIC: New total amount negotiated cannot be less than OR EQUAL TO purchase price
+    if (isNaN(parsedNewTotalAmountNegotiated) || parsedNewTotalAmountNegotiated <= totalPrixAchatDeLaVente) {
+      setStatusMessage({ type: 'error', text: `Le nouveau montant total (${formatCFA(parsedNewTotalAmountNegotiated)}) ne peut pas être inférieur ou égal au prix d'achat total de la vente (${formatCFA(totalPrixAchatDeLaVente)}).` });
+      setIsUpdatingPayment(false); // Reset loading state
       return;
     }
 
     if (parsedNewMontantPaye > parsedNewTotalAmountNegotiated) {
       setStatusMessage({ type: 'error', text: `Le montant payé (${formatCFA(parsedNewMontantPaye)}) ne peut pas être supérieur au nouveau montant total de la vente (${formatCFA(parsedNewTotalAmountNegotiated)}).` });
+      setIsUpdatingPayment(false); // Reset loading state
       return;
     }
 
     if (parsedNewMontantPaye > 0 && parsedNewTotalAmountNegotiated < currentSaleToEdit.montant_paye) {
         setStatusMessage({ type: 'error', text: `Le nouveau montant total (${formatCFA(parsedNewTotalAmountNegotiated)}) ne peut pas être inférieur au montant déjà payé (${formatCFA(currentSaleToEdit.montant_paye)}).` });
+        setIsUpdatingPayment(false); // Reset loading state
         return;
     }
 
@@ -215,6 +226,8 @@ export default function Sorties() {
     } catch (error) {
       console.error('Erreur lors de la mise à jour du paiement:', error);
       setStatusMessage({ type: 'error', text: 'Erreur de communication avec le serveur lors de la mise à jour du paiement.' });
+    } finally {
+      setIsUpdatingPayment(false); // Reset loading state
     }
   };
 
@@ -448,43 +461,29 @@ export default function Sorties() {
   };
 
   return (
-    <div className="p-4 max-w-full mx-auto font-sans bg-gray-50 rounded-xl shadow border border-gray-200">
+    <div id="printableContent" className="p-4 max-w-full mx-auto font-sans bg-gray-50 rounded-xl shadow border border-gray-200">
       <style>
         {`
         @media print {
-          .no-print {
-            display: none !important;
-          }
-          .overflow-x-auto {
-            overflow-x: visible !important;
-          }
-          /* Supprime min-width pour l'impression aussi si ce n'est pas souhaité */
-          .table-container { 
-            min-width: unset !important;
-          }
-          table {
-            width: 100% !important;
-            border-collapse: collapse;
-          }
-          th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            font-size: 9pt;
-            white-space: normal; /* Permet le retour à la ligne pour l'impression */
-          }
-          body {
-            font-size: 10pt;
-          }
-          h2 {
-            font-size: 14pt;
-          }
+          body * { visibility: hidden; }
+          #printableContent, #printableContent * { visibility: visible; }
+          #printableContent { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; background: none; box-shadow: none; border: none; }
+          .no-print, .print-hidden { display: none !important; }
+          #vite-error-overlay, #react-devtools-content { display: none !important; }
+          .overflow-x-auto { overflow-x: visible !important; }
+          /* Ajusté pour correspondre à la largeur minimale du tableau */
+          .min-w-\\[1700px\\] { min-width: unset !important; }
+          table { width: 100% !important; border-collapse: collapse; }
+          th, td { border: 1px solid #ddd; padding: 8px; font-size: 9pt; white-space: normal; }
+          body { font-size: 10pt; }
+          .print-header { display: block !important; text-align: center; margin-bottom: 20px; font-size: 18pt; font-weight: bold; color: #333; }
         }
         `}
       </style>
 
-      <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center flex items-center justify-center">
-        <ShoppingCartIcon className="h-6 w-6 text-gray-600 mr-2" />
-        Historique des Ventes
+      <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center flex items-center justify-center print-header">
+        <ShoppingCartIcon className="h-6 w-6 text-gray-600 mr-2 print-hidden" />
+        Historique des Sorties
       </h2>
 
       {statusMessage.text && (
@@ -514,11 +513,10 @@ export default function Sorties() {
           />
         </div>
       </div>
-
       <div className="flex justify-end mb-4 no-print">
         <button
           onClick={handlePrint}
-          className="flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition duration-200 font-medium"
+          className="flex items-center px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-300 transition duration-200 font-medium"
         >
           <PrinterIcon className="h-5 w-5 mr-2" />
           Imprimer la liste
@@ -526,31 +524,32 @@ export default function Sorties() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 text-center text-sm">Chargement des ventes...</p>
+        <p className="text-gray-600 text-center text-sm">Chargement des ventes...</p>
       ) : filteredVentes.length === 0 ? (
-        <p className="text-gray-500 text-center text-sm">Aucune vente trouvée correspondant à votre recherche.</p>
+        <p className="text-gray-500 text-center text-sm">Aucune ventes trouvée correspondant à votre recherche.</p>
       ) : (
         <div className="overflow-x-auto">
+          {/* Augmenté la largeur minimale pour accueillir toutes les colonnes */}
           <div className="min-w-[1200px] table-container">
             <table className="table-auto w-full text-xs divide-y divide-gray-200">
               <thead className="bg-gray-100 text-gray-700 text-left">
                 <tr>
-                  <th className="px-3 py-2 font-medium">ID Vente</th>
-                  <th className="px-3 py-2 font-medium">Date Vente</th>
-                  <th className="px-3 py-2 font-medium">Client</th>
-                  <th className="px-3 py-2 font-medium">Marque</th>
-                  <th className="px-3 py-2 font-medium">Modèle</th>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Type Carton</th>
-                  <th className="px-3 py-2 font-medium">Stockage</th>
-                  <th className="px-3 py-2 font-medium">IMEI</th>
-                  <th className="px-3 py-2 font-medium text-right">Qté</th>
-                  <th className="px-3 py-2 font-medium text-right">Prix Unit.</th>
-                  <th className="px-3 py-2 font-medium text-right">Total Vente</th>
-                  <th className="px-3 py-2 font-medium text-right">Montant Payé</th>
-                  <th className="px-3 py-2 font-medium text-right">Reste à Payer</th>
-                  <th className="px-3 py-2 font-medium text-center">Statut Article</th>
-                  <th className="px-3 py-2 font-center no-print">Actions</th>
+                  <th className="px-3 py-2 font-medium w-[4%]">ID Vente</th>
+                  <th className="px-3 py-2 font-medium w-[9%]">Date Vente</th>
+                  <th className="px-3 py-2 font-medium w-[9%]">Client</th>
+                  <th className="px-3 py-2 font-medium w-[7%]">Marque</th>
+                  <th className="px-3 py-2 font-medium w-[7%]">Modèle</th>
+                  <th className="px-3 py-2 font-medium w-[6%]">Type</th>
+                  <th className="px-3 py-2 font-medium w-[6%]">Type Carton</th>
+                  <th className="px-3 py-2 font-medium w-[6%]">Stockage</th>
+                  <th className="px-3 py-2 font-medium w-[7%]">IMEI</th>
+                  <th className="px-3 py-2 font-medium text-right w-[4%]">Qté</th>
+                  <th className="px-3 py-2 font-medium text-right w-[7%]">Prix Unit.</th>
+                  <th className="px-3 py-2 font-medium text-right w-[7%]">Total Vente</th>
+                  <th className="px-3 py-2 font-medium text-right w-[7%]">Montant Payé</th>
+                  <th className="px-3 py-2 font-medium text-right w-[7%]">Reste à Payer</th>
+                  <th className="px-3 py-2 font-medium text-center w-[7%]">Statut Article</th>
+                  <th className="px-3 py-2 text-right no-print w-[8%]">Actions</th> {/* Corrigé de font-center à text-right */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -563,7 +562,7 @@ export default function Sorties() {
 
                   return (
                     <tr key={`${data.vente_id}-${data.item_id}`} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-gray-900">
+                      <td className="px-3 py-2 text-gray-900 font-medium">
                         <div className="max-w-[60px] truncate" title={data.vente_id}>{data.vente_id}</div>
                       </td>
                       <td className="px-3 py-2 text-gray-700">
@@ -574,29 +573,38 @@ export default function Sorties() {
                       <td className="px-3 py-2 text-gray-700">
                         <div className="max-w-[100px] truncate" title={data.client_nom}>{data.client_nom}</div>
                       </td>
+                      {/* Colonnes Article Séparées */}
                       <td className="px-3 py-2 text-gray-700">
                         <div className="max-w-[80px] truncate" title={data.marque}>{data.marque}</div>
                       </td>
                       <td className="px-3 py-2 text-gray-700">
-                        <div className="max-w-[100px] truncate" title={data.modele}>{data.modele}</div>
+                        <div className="max-w-[80px] truncate" title={data.modele}>{data.modele}</div>
                       </td>
-                      <td className="px-3 py-2 text-gray-700">{data.type || '—'}</td>
-                      <td className="px-3 py-2 text-gray-700">{data.type_carton || '—'}</td>
-                      <td className="px-3 py-2 text-gray-700">{data.stockage || '—'}</td>
-                      <td className="px-3 py-2 text-gray-700">{data.imei}</td>
+                      <td className="px-3 py-2 text-gray-700">
+                        <div className="max-w-[60px] truncate" title={data.type || '—'}>{data.type || '—'}</div>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700">
+                        <div className="max-w-[60px] truncate" title={data.type_carton || '—'}>{data.type_carton || '—'}</div>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700">
+                        <div className="max-w-[60px] truncate" title={data.stockage || '—'}>{data.stockage || '—'}</div>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700">
+                        <div className="max-w-[80px] truncate" title={data.imei}>{data.imei}</div>
+                      </td>
                       <td className="px-3 py-2 text-right text-gray-700">{data.quantite_vendue}</td>
                       {/* Appliquer formatCFA aux colonnes monétaires */}
                       <td className="px-3 py-2 text-right text-gray-700">{formatCFA(data.prix_unitaire_vente)}</td>
                       <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCFA(data.montant_total_vente)}</td>
                       <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCFA(data.montant_paye_vente)}</td>
-                      <td className="px-3 py-2 text-right font-medium text-gray-900">{formatCFA(data.reste_a_payer_vente)}</td>
+                      <td className="px-3 py-2 text-right font-medium text-red-600">{formatCFA(data.reste_a_payer_vente)}</td>
                       <td className="px-3 py-2 text-center">
                         <span className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap
                           ${data.statut_vente === 'annule' ? 'bg-orange-100 text-orange-800' : ''}
                           ${data.statut_vente === 'retourne' ? 'bg-purple-100 text-purple-800' : ''}
                           ${data.statut_vente === 'remplace' ? 'bg-indigo-100 text-indigo-800' : ''}
                           ${data.statut_vente === 'rendu' ? 'bg-cyan-100 text-cyan-800' : ''}
-                          ${data.statut_vente === 'actif' && data.reste_a_payer_vente === 0 ? 'bg-green-100 text-green-800' : ''}
+                          ${data.statut_vente === 'actif' && data.reste_a_payer_vente <= 0 ? 'bg-green-100 text-green-800' : ''}
                           ${data.statut_vente === 'actif' && data.reste_a_payer_vente > 0 ? 'bg-blue-100 text-blue-800' : ''}
                         `}>
                           {data.statut_vente === 'annule'
@@ -607,29 +615,31 @@ export default function Sorties() {
                                 ? 'REMPLACÉ'
                                 : data.statut_vente === 'rendu'
                                   ? 'RENDU'
-                                  : data.reste_a_payer_vente === 0
+                                  : data.reste_a_payer_vente <= 0
                                     ? 'VENDU'
                                     : 'EN COURS'
                           }
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-center space-x-1 no-print">
+                      <td className="px-3 py-2 text-right space-x-1 no-print">
                         {/* Bouton Modifier Paiement (visible si la vente n'est pas intégralement payée ou annulée ET si ce n'est PAS un article de facture spéciale) */}
                         {!data.is_special_sale_item && data.statut_paiement_vente !== 'payee_integralement' && data.statut_paiement_vente !== 'annulee' && data.statut_vente === 'actif' && (
                           <button
                             onClick={() => handleUpdatePaymentClick(data.vente_id, data.montant_paye_vente, data.montant_total_vente, data.total_prix_achat_de_la_vente)}
                             className="p-1 rounded-full text-blue-600 hover:bg-blue-100 transition"
                             title="Modifier paiement de la vente"
+                            disabled={isUpdatingPayment} // Disable if already updating
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                         )}
-                        {/* Bouton Annuler Article (visible si l'article est actif, si ce n'est PAS un article de facture spéciale ET si MOINS de 24h se sont écoulées) */}
-                        {!data.is_special_sale_item && data.statut_vente === 'actif' && !isOlderThan24Hours && (
+                        {/* Bouton Annuler Article (visible si l'article est actif ET si MOINS de 24h se sont écoulées) */}
+                        {data.statut_vente === 'actif' && !isOlderThan24Hours && (
                           <button
                             onClick={() => handleCancelItemClick(data)}
                             className="p-1 rounded-full text-red-600 hover:bg-red-100 transition"
                             title="Annuler cet article et remettre en stock"
+                            disabled={isConfirming} // Disable if another confirm action is ongoing
                           >
                             <ArrowUturnLeftIcon className="h-4 w-4" />
                           </button>
@@ -640,16 +650,18 @@ export default function Sorties() {
                             onClick={() => handleReturnItemClick(data)}
                             className="p-1 rounded-full text-purple-600 hover:bg-purple-100 transition"
                             title="Retourner ce mobile (défectueux)"
+                            disabled={isConfirming} // Disable if another confirm action is ongoing
                           >
                             <ArrowPathIcon className="h-4 w-4" />
                           </button>
                         )}
-                        {/* Nouveau Bouton : Marquer comme Rendu (visible seulement si l'article est actif ET si PLUS de 24h se sont écoulées) */}
+                        {/* Nouveau Bouton : Marquer comme Rendu (visible si l'article est actif ET si PLUS de 24h se sont écoulées) */}
                         {data.statut_vente === 'actif' && isOlderThan24Hours && (
                           <button
                             onClick={() => handleMarkAsRenduClick(data)}
                             className="p-1 rounded-full text-cyan-600 hover:bg-cyan-100 transition"
                             title="Marquer comme Rendu"
+                            disabled={isConfirming} // Disable if another confirm action is ongoing
                           >
                             <ArrowDownTrayIcon className="h-4 w-4" />
                           </button>
@@ -668,7 +680,7 @@ export default function Sorties() {
       {showPaymentModal && currentSaleToEdit && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 no-print">
           <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full">
-            <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Modifier le Paiement de la Vente #{currentSaleToEdit.id}</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Mise à jour du Paiement de la Vente #{currentSaleToEdit.id}</h3>
             <p className="text-gray-700 text-base mb-3">Montant Total Initial: <span className="font-semibold">{formatCFA(currentSaleToEdit.montant_total)}</span></p>
             <p className="text-gray-700 text-base mb-4">Montant Actuellement Payé: <span className="font-semibold">{formatCFA(currentSaleToEdit.montant_paye)}</span></p>
 
@@ -704,16 +716,21 @@ export default function Sorties() {
                 onClick={() => {
                   setShowPaymentModal(false);
                   setNewTotalAmountNegotiated('');
+                  setIsUpdatingPayment(false); // Ensure loading state is reset on cancel
                 }}
                 className="px-6 py-3 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 transition duration-200 font-medium"
+                disabled={isUpdatingPayment}
               >
                 Annuler
               </button>
               <button
                 onClick={handleConfirmUpdatePayment}
-                className="px-6 py-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 font-medium shadow-md"
+                className={`px-6 py-3 rounded-full font-medium shadow-md ${
+                  isUpdatingPayment ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+                disabled={isUpdatingPayment}
               >
-                Confirmer la Mise à Jour
+                {isUpdatingPayment ? 'Confirmation...' : 'Confirmer la Mise à Jour'}
               </button>
             </div>
           </div>

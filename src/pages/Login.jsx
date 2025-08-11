@@ -1,11 +1,12 @@
-// Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react'; // Importez les icônes nécessaires
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // Nouvel état pour la visibilité du mot de passe
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -13,6 +14,8 @@ export default function Login() {
     setMessage('');
 
     try {
+      // IMPORTANT : Changez cette URL pour l'URL de votre back-end déployé sur Railway !
+      // Exemple : const res = await fetch('https://niangadouback-production.up.railway.app/api/login', {
       const res = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,20 +39,24 @@ export default function Login() {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
       <div className="bg-white border border-blue-500/20 shadow-lg p-10 max-w-md w-full rounded-2xl">
 
         <div className="flex justify-center mb-4">
           <img
-            //src="/logo.png"
-           // alt="Logo Derkv"
+            src="/logo.jpg"
+            alt="Logo Niangou"
             className="w-20 h-20 rounded-full object-cover shadow"
           />
         </div>
 
         <h2 className="text-center text-2xl font-light text-blue-700 mb-6">
-          Connexion 
+          NIANGADOU ELECTRO
         </h2>
 
         {message && (
@@ -74,13 +81,23 @@ export default function Login() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Mot de passe
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div className="relative mt-1"> {/* Conteneur pour l'input et l'icône */}
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'} // Change le type en fonction de l'état
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10" // Ajout de padding à droite
+              />
+              <button
+                type="button" // Important : type="button" pour éviter la soumission du formulaire
+                onClick={togglePasswordVisibility}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-600 focus:outline-none"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />} {/* Affiche l'icône appropriée */}
+              </button>
+            </div>
           </div>
 
           <button

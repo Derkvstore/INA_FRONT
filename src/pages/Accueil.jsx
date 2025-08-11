@@ -6,7 +6,8 @@ import {
   CalendarDaysIcon, // Icône pour la date
   ClockIcon, // Icône pour le chronomètre
   ArrowLeftIcon, // Icône pour les retours
-  ArrowPathIcon // Icône pour les remplacements (envoyé au fournisseur)
+  ArrowPathIcon,// Icône pour les remplacements (envoyé au fournisseur)
+  ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline';
 
 export default function Accueil() {
@@ -20,6 +21,25 @@ export default function Accueil() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // NOUVEAU : État pour gérer l'index de la citation actuelle
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+
+  // NOUVEAU : Tableau de citations
+  const quotes = [
+   "DAFF TELECOM 🌟, l'univers des mobiles authentiques. L'innovation à portée de main.",
+    "Votre satisfaction, notre priorité. Découvrez la qualité DAFF TELECOM 📱.",
+    "DAFF TELECOM 🪐 : Des mobiles fiables, un service irréproquable. Connectez-vous à l'excellence.",
+    "L'authenticité au meilleur prix. C'est la promesse DAFF TELECOM ✨.",
+    "DAFF TELECOM 💡 : La technologie mobile réinventée pour vous. Simplicité et performance.",
+    "DAFF TELECOM 🌟 : L'excellence mobile à votre service. Des produits qui durent.",
+    "Chez DAFF TELECOM 🛡️, la sécurité de vos données et la qualité de votre appareil sont garanties.",
+    "DAFF TELECOM 💎 : Chaque mobile est une promesse de performance et de durabilité.",
+    "Libérez le potentiel de votre communication avec DAFF TELECOM 📶. Toujours connecté, toujours au top.",
+    "DAFF TELECOM 🤝 : Votre partenaire de confiance pour tous vos besoins en téléphonie mobile.",
+    "Découvrez la différence DAFF TELECOM 🔋 : Des batteries qui tiennent, des performances qui durent.",
+    "DAFF TELECOM 🌐 : Le monde de la mobile authentique, à portée de clic."
+  ];
 
   // Fonction pour obtenir la date du jour formatée
   const getFormattedDate = () => {
@@ -55,9 +75,17 @@ export default function Accueil() {
       setCurrentTime(new Date());
     }, 1000);
 
-    // Nettoyage du timer lors du démontage du composant
-    return () => clearInterval(timerId);
-  }, []);
+    // NOUVEAU : Configuration du carrousel de citations
+    const quoteInterval = setInterval(() => {
+      setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length);
+    }, 10000); // Change toutes les 10 secondes
+
+    // Nettoyage des timers lors du démontage du composant
+    return () => {
+      clearInterval(timerId);
+      clearInterval(quoteInterval); // Nettoyage du timer des citations
+    };
+  }, []); // Empty dependency array means it runs once on mount and cleans up on unmount
 
   // Formatage du temps pour le chronomètre
   const formatTime = (date) => {
@@ -69,7 +97,7 @@ export default function Accueil() {
 
   return (
     <div className="py-10 px-4">
-      {/* Styles pour l'animation d'entrée */}
+      {/* Styles pour l'animation d'entrée et de citation */}
       <style>
         {`
         @keyframes fadeInUp {
@@ -85,8 +113,31 @@ export default function Accueil() {
         .animate-fadeInUp {
           animation: fadeInUp 0.8s ease-out forwards;
         }
+
+        /* NOUVEAU : Styles pour l'animation de la citation */
+        @keyframes quoteFadeInUp {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .quote-animation {
+          animation: quoteFadeInUp 0.8s ease-out forwards;
+        }
         `}
       </style>
+
+      {/* NOUVEAU : La citation animée */}
+      <h3
+        key={currentQuoteIndex} // La clé change pour forcer la ré-animation
+        className="text-2xl font-semibold text-blue-800 text-center mb-8 quote-animation"
+      >
+        {quotes[currentQuoteIndex]}
+      </h3>
 
       {/* Appliquer l'animation au conteneur principal du contenu */}
       <div className="animate-fadeInUp">
@@ -108,9 +159,7 @@ export default function Accueil() {
           </div>
         </div>
 
-        <h3 className="text-2xl font-semibold text-blue-800 text-center mb-8">
-          GESTIONS DU STOCKS DES MOBILES
-        </h3>
+        
 
         {statsLoading ? (
           <p className="text-gray-600 text-center">Chargement des statistiques...</p>
@@ -148,11 +197,11 @@ export default function Accueil() {
 
             {/* Nouvelle Carte Mobiles Envoyés au Fournisseur */}
             {/* Si vous voulez afficher cette carte, décommentez-la et assurez-vous que la stat est bien renvoyée par le backend */}
-            {/* <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
-              <ArrowPathIcon className="h-12 w-12 text-orange-500 mb-3" />
-              <p className="text-4xl font-bold text-orange-800">{dashboardStats.totalSentToSupplier}</p>
-              <p className="text-lg text-gray-600 mt-2">Retour Fournisseur</p>
-            </div> */}
+             <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center border border-gray-200 transform transition-transform duration-300 hover:scale-105">
+              <ArrowsRightLeftIcon className="h-12 w-12 text-red-500 mb-3"  />
+              <p className="text-4xl font-bold text-pink-800">{dashboardStats.totalSentToSupplier}</p>
+              <p className="text-lg text-gray-600 mt-2">Retour Fournisseurs</p>
+            </div> 
           </div>
         )}
       </div>

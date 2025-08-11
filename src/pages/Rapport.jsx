@@ -249,7 +249,7 @@ export default function Rapport() {
               <ul className="space-y-2 text-gray-700 text-sm">
                 <li className="flex items-center">
                   <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />
-                  Stock d'hier: <span className="font-semibold ml-1">{dailyStats.yesterdayStockCarton}</span>
+                  Stock d'hier: <span className="font-semibold ml-1">---</span>
                 </li>
                 <li className="flex items-center">
                   <PlusIcon className="h-4 w-4 mr-2 text-green-600" />
@@ -265,7 +265,7 @@ export default function Rapport() {
                 </li>
                 <li className="flex items-center">
                   <ArrowDownTrayIcon className="h-4 w-4 mr-2 text-cyan-600" />
-                  Rendu aujourd'hui: <span className="font-semibold ml-1">{dailyStats.renduTodayCarton}</span>
+                   Mobile annuler hier: <span className="font-semibold ml-1">{dailyStats.renduTodayCarton}</span>
                 </li>
                 {/* Nouvelle ligne pour les factures Carton */}
                 <li className="flex items-center font-bold text-gray-900 border-t pt-2 mt-2">
@@ -288,7 +288,7 @@ export default function Rapport() {
               <ul className="space-y-2 text-gray-700 text-sm">
                 <li className="flex items-center">
                   <ClockIcon className="h-4 w-4 mr-2 text-gray-500" />
-                  Stock d'hier: <span className="font-semibold ml-1">{dailyStats.yesterdayStockArrivage}</span>
+                  Stock d'hier: <span className="font-semibold ml-1">---</span>
                 </li>
                 <li className="flex items-center">
                   <PlusIcon className="h-4 w-4 mr-2 text-green-600" />
@@ -304,7 +304,7 @@ export default function Rapport() {
                 </li>
                 <li className="flex items-center">
                   <ArrowDownTrayIcon className="h-4 w-4 mr-2 text-cyan-600" />
-                  Rendu aujourd'hui: <span className="font-semibold ml-1">{dailyStats.renduTodayArrivage}</span>
+                  Mobile annuler hier: <span className="font-semibold ml-1">{dailyStats.renduTodayArrivage}</span>
                 </li>
                 {/* Nouvelle ligne pour les factures Arrivage */}
                 <li className="flex items-center font-bold text-gray-900 border-t pt-2 mt-2">
