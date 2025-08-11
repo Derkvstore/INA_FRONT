@@ -26,9 +26,7 @@ export default function Login() {
         body: JSON.stringify({ username, password }),
       });
 
-      // 💡 Vérifie le statut de la réponse avant de tenter de la lire en JSON
       if (!res.ok) {
-        // Gérer spécifiquement les erreurs 404, 401, etc.
         if (res.status === 404) {
           setMessage('❌ Erreur: L\'API de connexion est introuvable.');
         } else if (res.status === 401) {
@@ -41,15 +39,12 @@ export default function Login() {
       }
 
       const data = await res.json();
-
       localStorage.setItem('token', data.token);
       localStorage.setItem('fullName', data.fullName);
       localStorage.setItem('username', data.username);
       navigate('/dashboard');
-      
     } catch (err) {
       console.error('Erreur lors de la connexion frontend :', err);
-      // 💡 Message d'erreur plus détaillé pour le catch block
       setMessage(`❌ Erreur serveur: Impossible de se connecter à l'API. Vérifiez l'URL du backend.`);
     } finally {
       setLoading(false);
@@ -62,25 +57,25 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white border border-blue-500/20 shadow-lg p-10 max-w-md w-full rounded-2xl">
+      <div className="bg-white border border-blue-500/20 shadow-lg p-6 sm:p-8 md:p-10 max-w-md w-full rounded-2xl">
 
         <div className="flex justify-center mb-4">
           <img
             src="/logo.jpg"
             alt="Logo Daff telecom"
-            className="w-20 h-20 rounded-full object-cover shadow"
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover shadow"
           />
         </div>
 
-        <h2 className="text-center text-2xl font-light text-blue-700 mb-6">
-        Niangadou ELECTRO
+        <h2 className="text-center text-xl sm:text-2xl font-light text-blue-700 mb-6">
+          Niangadou ELECTRO
         </h2>
 
         {message && (
           <div className="mb-4 text-sm text-blue-600 text-center">{message}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Nom d’utilisateur
@@ -90,7 +85,7 @@ export default function Login() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             />
           </div>
@@ -105,7 +100,7 @@ export default function Login() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
                 disabled={loading}
               />
               <button
@@ -122,7 +117,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center items-center gap-2 bg-blue-600 text-white py-3 rounded-full transition hover:bg-blue-700 ${
+            className={`w-full flex justify-center items-center gap-2 bg-blue-600 text-white py-2 sm:py-3 rounded-full transition hover:bg-blue-700 ${
               loading ? 'opacity-60 cursor-not-allowed' : ''
             }`}
           >
