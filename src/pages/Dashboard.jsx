@@ -39,7 +39,7 @@ import Fournisseurs from './Fournisseurs.jsx';
 import Factures from './Factures.jsx';
 import Benefices from '../pages/Benefices.jsx';
 import SpecialOrders from '../pages/SpecialOrders.jsx';
-import logo from '../assets/logo.jpg';
+import logo from './assets/logo.jpg';
 
 const sections = [
   { name: 'Produits', icon: CubeIcon },

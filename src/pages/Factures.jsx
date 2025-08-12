@@ -22,6 +22,7 @@ export default function Factures() {
   const [allAvailableProducts, setAllAvailableProducts] = useState([]);
   const [allClients, setAllClients] = useState([]);
   const [negotiatedPrice, setNegotiatedPrice] = useState(''); // État pour le prix négocié lors de la création
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false); // État pour le loading du bouton de création
 
   // États pour les actions sur facture existante
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -36,18 +37,23 @@ export default function Factures() {
   const [selectedReturnItem, setSelectedReturnItem] = useState(null);
   const [currentVenteItems, setCurrentVenteItems] = useState([]); // Articles actifs de la facture pour la modale de retour
   const [newPaymentTotal, setNewPaymentTotal] = useState(''); // NOUVEAU ÉTAT pour le montant total à négocier dans la modale de paiement
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false); // État pour le loading du bouton de paiement
+  const [isCancellingInvoice, setIsCancellingInvoice] = useState(false); // État pour le loading du bouton d'annulation
+  const [isReturningItem, setIsReturningItem] = useState(false); // État pour le loading du bouton de retour
 
   // ✅ LOGIQUE CORRIGÉE POUR GÉRER LOCAL ET PRODUCTION
   const backendUrl = import.meta.env.PROD
-    ? 'https://inaback-production.up.railway.app'
+    ?    'https://inaback-production.up.railway.app'
     : 'http://localhost:3001';
 
-  const formatAmount = (amount) => {
+  // Nouvelle fonction pour un formatage plus clair et cohérent
+  const formatCFA = (amount) => {
     if (amount === null || amount === undefined || isNaN(parseFloat(amount))) {
-      return 'N/A';
+      return '0 CFA';
     }
-    // Formate le montant sans décimales et sans séparateur de milliers, puis ajoute ' CFA'
-    return Math.round(parseFloat(amount)).toString() + ' CFA';
+    return Math.round(parseFloat(amount)).toLocaleString('fr-FR', {
+      useGrouping: true,
+    }) + ' CFA';
   };
 
   const formatDate = (dateString) => {
@@ -262,7 +268,7 @@ export default function Factures() {
 
         // Validation: Prix de vente ne peut pas être inférieur au prix d'achat
         if (row.selectedProduct && newUnitPrice < row.purchasePrice) {
-          validationError = `Le prix de vente (${formatAmount(newUnitPrice)}) ne peut pas être inférieur au prix d'achat (${formatAmount(row.purchasePrice)}).`;
+          validationError = `Le prix de vente (${formatCFA(newUnitPrice)}) ne peut pas être inférieur au prix d'achat (${formatCFA(row.purchasePrice)}).`;
         } else if (newUnitPrice <= 0 && row.quantity > 0) { // Si quantité > 0, le prix doit être > 0
           validationError = 'Le prix unitaire doit être positif.';
         }
@@ -290,6 +296,7 @@ export default function Factures() {
   const { total, paid, balance } = calculateOverallTotals() || {};
 
   const handleConfirmCreateInvoice = async () => {
+    setIsCreatingInvoice(true);
     console.log("--- Début de handleConfirmCreateInvoice ---");
     console.log("1. État initial du formulaire:", {
       newInvoiceClientName,
@@ -302,6 +309,7 @@ export default function Factures() {
     if (!newInvoiceClientName.trim()) {
       setCreateInvoiceError("Le nom du client est requis.");
       console.log("Validation échouée: Nom du client manquant.");
+      setIsCreatingInvoice(false);
       return;
     }
     console.log("2. Validation nom client passée.");
@@ -309,6 +317,7 @@ export default function Factures() {
     if (invoiceRows.length === 0) {
       setCreateInvoiceError("Veuillez ajouter au moins un produit à la facture.");
       console.log("Validation échouée: Aucune ligne de facture.");
+      setIsCreatingInvoice(false);
       return;
     }
     console.log("3. Validation lignes de facture (non vide) passée.");
@@ -338,6 +347,7 @@ export default function Factures() {
     }
     if (hasRowError) {
         console.log("4. Validation globale échouée: Erreur sur une ligne.");
+        setIsCreatingInvoice(false);
         return;
     }
     console.log("4. Validation de toutes les lignes de facture passée.");
@@ -349,6 +359,7 @@ export default function Factures() {
     if (isNaN(finalPaid) || finalPaid < 0) {
         setCreateInvoiceError("Le montant payé est invalide. Veuillez entrer un montant numérique positif.");
         console.log("Validation échouée: Montant payé invalide.");
+        setIsCreatingInvoice(false);
         return;
     }
     console.log("6. Validation montant payé passée.");
@@ -414,55 +425,61 @@ export default function Factures() {
       setCreateInvoiceError(`Erreur: ${error.response?.data?.error || error.message}`);
       console.log("13. Création de facture échouée dans le bloc catch. Message d'erreur défini.");
     } finally {
+      setIsCreatingInvoice(false);
       console.log("--- Fin de handleConfirmCreateInvoice ---");
     }
   };
 
 const resetCreateInvoiceForm = () => {
-setNewInvoiceClientName('');
-setNewInvoiceClientPhone('');
-setInvoiceRows([]);
-setNewInvoicePayment(0);
-setCreateInvoiceError('');
-setNegotiatedPrice(''); // Réinitialiser le prix négocié
+  setNewInvoiceClientName('');
+  setNewInvoiceClientPhone('');
+  setInvoiceRows([]);
+  setNewInvoicePayment(0);
+  setCreateInvoiceError('');
+  setNegotiatedPrice(''); // Réinitialiser le prix négocié
 };
 
 const handleOpenPaymentModal = (facture) => {
-if (!facture || !facture.facture_id) {
-console.error("Impossible d'ouvrir la modale de paiement: Facture ou ID de facture manquant.", { facture });
-setStatusMessage({ type: 'error', text: 'Impossible de gérer le paiement: Facture invalide.' });
-return;
-}
-setCurrentFacture(facture);
-setPaymentAmount(facture.montant_paye_facture);
-setNewPaymentTotal(facture.montant_original_facture); // Initialise le montant total pour la négociation
-setShowPaymentModal(true);
+  if (!facture || !facture.facture_id) {
+    console.error("Impossible d'ouvrir la modale de paiement: Facture ou ID de facture manquant.", { facture });
+    setStatusMessage({ type: 'error', text: 'Impossible de gérer le paiement: Facture invalide.' });
+    return;
+  }
+  setCurrentFacture(facture);
+  setPaymentAmount(Math.round(facture.montant_paye_facture)); // Utilise Math.round pour éviter les décimales
+  setNewPaymentTotal(Math.round(facture.montant_original_facture)); // Utilise Math.round pour les entiers
+  setShowPaymentModal(true);
 };
 
 const handleUpdatePayment = async () => {
-if (!currentFacture || !currentFacture.facture_id || isNaN(parseFloat(paymentAmount)) || isNaN(parseFloat(newPaymentTotal))) {
-setStatusMessage({ type: 'error', text: 'Montant de paiement ou montant total invalide ou facture non sélectionnée.' });
-return;
-}
-if (parseFloat(paymentAmount) > parseFloat(newPaymentTotal)) {
-setStatusMessage({ type: 'error', text: 'Le montant payé ne peut pas dépasser le nouveau montant total.' });
-return;
-}
+  setIsUpdatingPayment(true);
+  if (!currentFacture || !currentFacture.facture_id || isNaN(parseFloat(paymentAmount)) || isNaN(parseFloat(newPaymentTotal))) {
+    setStatusMessage({ type: 'error', text: 'Montant de paiement ou montant total invalide ou facture non sélectionnée.' });
+    setIsUpdatingPayment(false);
+    return;
+  }
+  if (parseFloat(paymentAmount) > parseFloat(newPaymentTotal)) {
+    setStatusMessage({ type: 'error', text: 'Le montant payé ne peut pas dépasser le nouveau montant total.' });
+    setIsUpdatingPayment(false);
+    return;
+  }
 
-try {
-const response = await axios.put(`${backendUrl}/api/factures/${currentFacture.facture_id}/payment`, {
-montant_paye_facture: parseFloat(paymentAmount),
-new_total_amount: parseFloat(newPaymentTotal) // Envoie le nouveau montant total
-});
-setStatusMessage({ type: 'success', text: response.data.message || 'Paiement et montant total mis à jour.' });
-fetchFactures();
-setShowPaymentModal(false);
-setPaymentAmount('');
-setNewPaymentTotal(''); // Réinitialise l'état
-} catch (error) {
-console.error('Erreur lors de la mise à jour du paiement:', error);
-setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
-}
+  try {
+    const response = await axios.put(`${backendUrl}/api/factures/${currentFacture.facture_id}/payment`, {
+      montant_paye_facture: parseFloat(paymentAmount),
+      new_total_amount: parseFloat(newPaymentTotal) // Envoie le nouveau montant total
+    });
+    setStatusMessage({ type: 'success', text: response.data.message || 'Paiement et montant total mis à jour.' });
+    fetchFactures();
+    setShowPaymentModal(false);
+    setPaymentAmount('');
+    setNewPaymentTotal(''); // Réinitialise l'état
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du paiement:', error);
+    setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
+  } finally {
+    setIsUpdatingPayment(false);
+  }
 };
 
 // Calcul du montant dû actuel dans la modale de paiement
@@ -471,127 +488,154 @@ const currentPaymentModalBalanceDue = currentFacture
 : 0;
 
 const handleOpenCancelModal = (facture) => {
-if (!facture || !facture.facture_id) {
-console.error("Impossible d'ouvrir la modale d'annulation: Facture ou ID de facture manquant.", { facture });
-setStatusMessage({ type: 'error', text: 'Impossible d\'annuler la facture: Facture invalide.' });
-return;
-}
-setCurrentFacture(facture);
-setCancelReason('');
-setShowCancelModal(true);
+  if (!facture || !facture.facture_id) {
+    console.error("Impossible d'ouvrir la modale d'annulation: Facture ou ID de facture manquant.", { facture });
+    setStatusMessage({ type: 'error', text: 'Impossible d\'annuler la facture: Facture invalide.' });
+    return;
+  }
+  setCurrentFacture(facture);
+  setCancelReason('');
+  setShowCancelModal(true);
 };
 
 const handleCancelInvoice = async () => {
-if (!currentFacture || !currentFacture.facture_id || !cancelReason) {
-setStatusMessage({ type: 'error', text: 'Veuillez fournir une raison d\'annulation et s\'assurer que la facture est liée.' });
-return;
-}
-try {
-// Appel à la route PUT /api/factures/:id/cancel
-const response = await axios.put(`${backendUrl}/api/factures/${currentFacture.facture_id}/cancel`, {
-raison_annulation: cancelReason
-});
-setStatusMessage({ type: 'success', text: response.data.message || 'Facture annulée avec succès.' });
-fetchFactures();
-setShowCancelModal(false);
-setCancelReason('');
-} catch (error) {
-console.error('Erreur lors de l\'annulation de la facture:', error);
-setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
-}
+  setIsCancellingInvoice(true);
+  if (!currentFacture || !currentFacture.facture_id || !cancelReason) {
+    setStatusMessage({ type: 'error', text: 'Veuillez fournir une raison d\'annulation et s\'assurer que la facture est liée.' });
+    setIsCancellingInvoice(false);
+    return;
+  }
+  try {
+    // Appel à la route PUT /api/factures/:id/cancel
+    const response = await axios.put(`${backendUrl}/api/factures/${currentFacture.facture_id}/cancel`, {
+      raison_annulation: cancelReason
+    });
+    setStatusMessage({ type: 'success', text: response.data.message || 'Facture annulée avec succès.' });
+    fetchFactures();
+    setShowCancelModal(false);
+    setCancelReason('');
+  } catch (error) {
+    console.error('Erreur lors de l\'annulation de la facture:', error);
+    setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
+  } finally {
+    setIsCancellingInvoice(false);
+  }
 };
 
 const handleOpenReturnModal = async (facture) => {
-if (!facture || !facture.facture_id) {
-console.error("Impossible d'ouvrir la modale de retour: Facture ou ID de facture manquant.", { facture });
-setStatusMessage({ type: 'error', text: 'Impossible de gérer le retour: Facture invalide.' });
-return;
-}
-setCurrentFacture(facture);
-setReturnReason('');
-setReturnAmount('');
-setSelectedReturnItem(null);
-try {
-// Utilise facture.facture_id dans l'URL
-const response = await axios.get(`${backendUrl}/api/factures/${facture.facture_id}`);
-setCurrentFactureDetails(response.data);
-// Filtrer les articles actifs de la vente liée pour le retour
-setCurrentVenteItems(response.data.articles_vendus.filter(item => item.statut_vente === 'actif')); // articles_vendus du backend
-setShowReturnModal(true);
-} catch (error) {
-setStatusMessage({ type: 'error', text: `Erreur lors du chargement des articles de la facture: ${error.response?.data?.error || error.message}` });
-}
+  if (!facture || !facture.facture_id) {
+    console.error("Impossible d'ouvrir la modale de retour: Facture ou ID de facture manquant.", { facture });
+    setStatusMessage({ type: 'error', text: 'Impossible de gérer le retour: Facture invalide.' });
+    return;
+  }
+  setCurrentFacture(facture);
+  setReturnReason('');
+  setReturnAmount('');
+  setSelectedReturnItem(null);
+  try {
+    // Utilise facture.facture_id dans l'URL
+    const response = await axios.get(`${backendUrl}/api/factures/${facture.facture_id}`);
+    setCurrentFactureDetails(response.data);
+    // Filtrer les articles actifs de la vente liée pour le retour
+    setCurrentVenteItems(response.data.articles_vendus.filter(item => item.statut_vente === 'actif')); // articles_vendus du backend
+    setShowReturnModal(true);
+  } catch (error) {
+    setStatusMessage({ type: 'error', text: `Erreur lors du chargement des articles de la facture: ${error.response?.data?.error || error.message}` });
+  }
 };
 
 const handleReturnItem = async () => {
-if (!currentFacture || !currentFacture.facture_id || !selectedReturnItem || !returnReason || isNaN(parseFloat(returnAmount))) {
-setStatusMessage({ type: 'error', text: 'Données de retour incomplètes ou invalides.' });
-return;
-}
-try {
-// Appel à la route POST /api/factures/:id/return-item
-const response = await axios.post(`${backendUrl}/api/factures/${currentFacture.facture_id}/return-item`, {
-vente_item_id: selectedReturnItem.item_id,
-reason: returnReason,
-montant_rembourse_item: parseFloat(returnAmount)
-});
-setStatusMessage({ type: 'success', text: response.data.message || "Retour d'article traité pour la facture." });
-fetchFactures();
-setShowReturnModal(false);
-setReturnReason('');
-setReturnAmount('');
-setSelectedReturnItem(null);
-setCurrentFactureDetails(null);
-} catch (error) {
-console.error('Erreur lors du traitement du retour:', error);
-setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
-}
+  setIsReturningItem(true);
+  if (!currentFacture || !currentFacture.facture_id || !selectedReturnItem || !returnReason || isNaN(parseFloat(returnAmount))) {
+    setStatusMessage({ type: 'error', text: 'Données de retour incomplètes ou invalides.' });
+    setIsReturningItem(false);
+    return;
+  }
+  try {
+    // Appel à la route POST /api/factures/:id/return-item
+    const response = await axios.post(`${backendUrl}/api/factures/${currentFacture.facture_id}/return-item`, {
+      vente_item_id: selectedReturnItem.item_id,
+      reason: returnReason,
+      montant_rembourse_item: parseFloat(returnAmount)
+    });
+    setStatusMessage({ type: 'success', text: response.data.message || "Retour d'article traité pour la facture." });
+    fetchFactures();
+    setShowReturnModal(false);
+    setReturnReason('');
+    setReturnAmount('');
+    setSelectedReturnItem(null);
+    setCurrentFactureDetails(null);
+  } catch (error) {
+    console.error('Erreur lors du traitement du retour:', error);
+    setStatusMessage({ type: 'error', text: `Erreur: ${error.response?.data?.error || error.message}` });
+  } finally {
+    setIsReturningItem(false);
+  }
 };
 
 const handlePrintInvoice = async (factureId) => {
-const factureToPrint = factures.find(f => f.facture_id === factureId); // Utilise facture_id
-if (!factureToPrint || !factureToPrint.vente_id) {
-setStatusMessage({ type: 'error', text: 'Impossible d\'imprimer: ID de vente non trouvé pour cette facture.' });
-return;
-}
+  const factureToPrint = factures.find(f => f.facture_id === factureId); // Utilise facture_id
+  if (!factureToPrint || !factureToPrint.vente_id) {
+    setStatusMessage({ type: 'error', text: 'Impossible d\'imprimer: ID de vente non trouvé pour cette facture.' });
+    return;
+  }
 
-try {
-// Appel à la route /api/ventes/:id/pdf (qui utilise l'ID de la VENTE)
-const response = await axios.get(`${backendUrl}/api/ventes/${factureToPrint.vente_id}/pdf`, {
-responseType: 'blob',
-});
+  try {
+    // Appel à la route /api/ventes/:id/pdf (qui utilise l'ID de la VENTE)
+    const response = await axios.get(`${backendUrl}/api/ventes/${factureToPrint.vente_id}/pdf`, {
+      responseType: 'blob',
+    });
 
-const fileURL = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-window.open(fileURL, '_blank');
-setStatusMessage({ type: 'success', text: `PDF de la facture ${factureId} généré avec succès.` });
-} catch (error) {
-console.error('Erreur lors de l\'impression de la facture:', error);
-setStatusMessage({ type: 'error', text: `Erreur lors de la génération du PDF: ${error.response?.data?.error || error.message}` });
-}
+    const fileURL = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    window.open(fileURL, '_blank');
+    setStatusMessage({ type: 'success', text: `PDF de la facture ${factureId} généré avec succès.` });
+  } catch (error) {
+    console.error('Erreur lors de l\'impression de la facture:', error);
+    setStatusMessage({ type: 'error', text: `Erreur lors de la génération du PDF: ${error.response?.data?.error || error.message}` });
+  }
 };
 
 const filteredFactures = factures.filter(facture => {
-const searchLower = searchTerm.toLowerCase();
-return (
-(facture.facture_id && facture.facture_id.toString().includes(searchLower)) || // Utilise facture_id
-(facture.numero_facture && facture.numero_facture.toLowerCase().includes(searchLower)) ||
-(facture.client_nom && facture.client_nom.toLowerCase().includes(searchLower)) ||
-(facture.statut_facture && facture.statut_facture.toLowerCase().includes(searchLower)) ||
-(facture.articles_vendus && facture.articles_vendus.some(item => // articles_vendus du backend
-item.imei?.toLowerCase().includes(searchLower) ||
-item.marque?.toLowerCase().includes(searchLower) ||
-item.modele?.toLowerCase().includes(searchLower)
-))
-);
+  const searchLower = searchTerm.toLowerCase();
+  return (
+    (facture.facture_id && facture.facture_id.toString().includes(searchLower)) || // Utilise facture_id
+    (facture.numero_facture && facture.numero_facture.toLowerCase().includes(searchLower)) ||
+    (facture.client_nom && facture.client_nom.toLowerCase().includes(searchLower)) ||
+    (facture.statut_facture && facture.statut_facture.toLowerCase().includes(searchLower)) ||
+    (facture.articles_vendus && facture.articles_vendus.some(item => // articles_vendus du backend
+      item.imei?.toLowerCase().includes(searchLower) ||
+      item.marque?.toLowerCase().includes(searchLower) ||
+      item.modele?.toLowerCase().includes(searchLower)
+    ))
+  );
 });
 
 // Logique pour désactiver le bouton de confirmation de création de facture
-const isConfirmButtonDisabled = !newInvoiceClientName.trim() || invoiceRows.length === 0 || isNaN(parseFloat(newInvoicePayment)) || invoiceRows.some(row => row.validationError || !row.selectedProduct || row.imeiList.length === 0 || parseFloat(row.unitPrice) <= 0);
+const isConfirmButtonDisabled = isCreatingInvoice || !newInvoiceClientName.trim() || invoiceRows.length === 0 || isNaN(parseFloat(newInvoicePayment)) || invoiceRows.some(row => row.validationError || !row.selectedProduct || row.imeiList.length === 0 || parseFloat(row.unitPrice) <= 0);
 console.log("État du bouton Confirmer Facture (disabled):", isConfirmButtonDisabled);
 
 
 return (
 <div className="p-4 max-w-full mx-auto font-sans bg-gray-50 rounded-xl shadow border border-gray-200">
+  <style>
+    {`
+    @keyframes loading-dot {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    .loading-dot {
+      animation: loading-dot 1.4s infinite ease-in-out both;
+      width: 8px;
+      height: 8px;
+      background-color: white;
+      border-radius: 50%;
+      display: inline-block;
+      margin: 0 2px;
+    }
+    .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+    `}
+  </style>
 <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center flex items-center justify-center">
 <DocumentTextIcon className="h-6 w-6 text-gray-600 mr-2" />
 Gestion des Factures
@@ -698,10 +742,10 @@ return (
 <td className="px-3 py-2 text-gray-700">{formatDate(facture.date_facture)}</td>
 <td className="px-3 py-2 text-gray-700">{facture.client_nom}</td>
 <td className="px-3 py-2 text-gray-700">{facture.client_telephone || 'N/A'}</td>
-<td className="px-3 py-2 text-right text-gray-700">{formatAmount(facture.montant_original_facture)}</td>
-<td className="px-3 py-2 text-right text-gray-700">{formatAmount(facture.montant_paye_facture)}</td>
-<td className="px-3 py-2 text-right font-semibold text-red-600">{formatAmount(facture.montant_actuel_du)}</td>
-<td className="px-3 py-2 text-right text-gray-700">{formatAmount(facture.montant_rembourse || 0)}</td>
+<td className="px-3 py-2 text-right text-gray-700">{formatCFA(facture.montant_original_facture)}</td>
+<td className="px-3 py-2 text-right text-gray-700">{formatCFA(facture.montant_paye_facture)}</td>
+<td className="px-3 py-2 text-right font-semibold text-red-600">{formatCFA(facture.montant_actuel_du)}</td>
+<td className="px-3 py-2 text-right text-gray-700">{formatCFA(facture.montant_rembourse || 0)}</td>
 <td className="px-3 py-2 text-center">
 <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${statusBgClass}`}>
 {displayStatusText}
@@ -861,7 +905,7 @@ step="1" // MODIFIÉ: step="1" pour les entiers
 min="0"
 />
 </td>
-<td className="px-3 py-2 text-right">{formatAmount(row.totalPrice)}</td>
+<td className="px-3 py-2 text-right">{formatCFA(row.totalPrice)}</td>
 <td className="px-3 py-2 text-center">
 <button
 type="button"
@@ -914,8 +958,8 @@ required
 />
 </div>
 <div className="col-span-2 text-right pt-2">
-<p className="text-lg font-bold text-gray-900">Sous-total: {formatAmount(total)}</p>
-<p className="text-lg font-bold text-red-600">Balance: {formatAmount(balance)}</p>
+<p className="text-lg font-bold text-gray-900">Sous-total: {formatCFA(total)}</p>
+<p className="text-lg font-bold text-red-600">Balance: {formatCFA(balance)}</p>
 </div>
 </div>
 
@@ -930,10 +974,20 @@ Annuler
 <button
 type="button"
 onClick={handleConfirmCreateInvoice}
-className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+className={`px-4 py-2 rounded-md transition-colors flex items-center justify-center font-medium shadow-md
+  ${isCreatingInvoice ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+}`}
 disabled={isConfirmButtonDisabled}
 >
-Confirmer Facture
+{isCreatingInvoice ? (
+  <>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+  </>
+) : (
+  'Confirmer Facture'
+)}
 </button>
 </div>
 </div>
@@ -945,8 +999,8 @@ Confirmer Facture
 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
 <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
 <h3 className="text-lg font-bold text-gray-900 mb-4">Gérer Paiement Facture #{currentFacture.facture_id}</h3>
-<p className="text-gray-700 mb-2">Montant Original de la Facture: {formatAmount(currentFacture.montant_original_facture)}</p>
-<p className="text-gray-700 mb-2">Montant Payé Actuel: {formatAmount(currentFacture.montant_paye_facture)}</p>
+<p className="text-gray-700 mb-2">Montant Original de la Facture: {formatCFA(currentFacture.montant_original_facture)}</p>
+<p className="text-gray-700 mb-2">Montant Payé Actuel: {formatCFA(currentFacture.montant_paye_facture)}</p>
 
 <label htmlFor="newPaymentTotal" className="block text-sm font-medium text-gray-700 mb-1">Nouveau Montant Total (Négocié):</label>
 <input
@@ -970,20 +1024,32 @@ step="1" // MODIFIÉ: step="1" pour les entiers
 min="0"
 max={newPaymentTotal} // Max est le nouveau montant total
 />
-<p className="text-lg font-bold text-red-600 mb-4">Montant Dû Actuel: {formatAmount(currentPaymentModalBalanceDue)}</p>
+<p className="text-lg font-bold text-red-600 mb-4">Montant Dû Actuel: {formatCFA(currentPaymentModalBalanceDue)}</p>
 
 <div className="flex justify-end space-x-4">
 <button
 onClick={() => setShowPaymentModal(false)}
 className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
+disabled={isUpdatingPayment}
 >
 Annuler
 </button>
 <button
 onClick={handleUpdatePayment}
-className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+className={`px-4 py-2 rounded-md transition-colors flex items-center justify-center font-medium shadow-md
+  ${isUpdatingPayment ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'
+}`}
+disabled={isUpdatingPayment}
 >
-Mettre à Jour Paiement
+{isUpdatingPayment ? (
+  <>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+  </>
+) : (
+  'Mettre à Jour Paiement'
+)}
 </button>
 </div>
 </div>
@@ -1009,14 +1075,26 @@ required
 <button
 onClick={() => setShowCancelModal(false)}
 className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
+disabled={isCancellingInvoice}
 >
 Annuler
 </button>
 <button
 onClick={handleCancelInvoice}
-className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+className={`px-4 py-2 rounded-md transition-colors flex items-center justify-center font-medium shadow-md
+  ${isCancellingInvoice ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'
+}`}
+disabled={!cancelReason || isCancellingInvoice}
 >
-Confirmer Annulation
+{isCancellingInvoice ? (
+  <>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+  </>
+) : (
+  'Confirmer Annulation'
+)}
 </button>
 </div>
 </div>
@@ -1039,14 +1117,14 @@ onChange={(e) => {
 const itemId = parseInt(e.target.value, 10);
 const item = currentVenteItems.find(i => i.item_id === itemId);
 setSelectedReturnItem(item);
-setReturnAmount(item ? item.prix_unitaire_vente : '');
+setReturnAmount(item ? Math.round(item.prix_unitaire_vente) : '');
 }}
 value={selectedReturnItem ? selectedReturnItem.item_id : ''}
 >
 <option value="">-- Sélectionner un article --</option>
 {currentVenteItems.map(item => (
 <option key={item.item_id} value={item.item_id}>
-{item.marque} {item.modele} ({item.imei}) - {formatAmount(item.prix_unitaire_vente)}
+{item.marque} {item.modele} ({item.imei}) - {formatCFA(item.prix_unitaire_vente)}
 </option>
 ))}
 </select>
@@ -1083,15 +1161,26 @@ required
 <button
 onClick={() => { setShowReturnModal(false); setSelectedReturnItem(null); setReturnReason(''); setReturnAmount(''); setCurrentFactureDetails(null); }}
 className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
+disabled={isReturningItem}
 >
 Annuler
 </button>
 <button
 onClick={handleReturnItem}
-className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition"
-disabled={!selectedReturnItem || !returnReason || isNaN(parseFloat(returnAmount))}
+className={`px-4 py-2 rounded-md transition-colors flex items-center justify-center font-medium shadow-md
+  ${isReturningItem ? 'bg-purple-400 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'
+}`}
+disabled={!selectedReturnItem || !returnReason || isNaN(parseFloat(returnAmount)) || isReturningItem}
 >
-Confirmer Retour
+{isReturningItem ? (
+  <>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+    <span className="loading-dot"></span>
+  </>
+) : (
+  'Confirmer Retour'
+)}
 </button>
 </div>
 </div>
